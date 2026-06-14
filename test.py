@@ -1,3 +1,4 @@
+from multiprocessing import freeze_support 
 import gdelt
 
 def main():
@@ -5,12 +6,13 @@ def main():
     gd2 = gdelt.gdelt(version=2)
 
     # Single 15 minute interval pull, output to json format with mentions table
-    results = gd2.Search('2016 Nov 1',table='mentions',output='json')
-    print(len(results))
+    results = gd2.Search('2024 Nov 1',table='gkg',output='json')
+    print(results)
 
     # Full day pull, output to pandas dataframe, events table
-    results = gd2.Search(['2016 11 01'],table='events',coverage=True)
-    print(len(results))
+    results = gd2.Search(['2024 11 01'],table='gkg',coverage=True)
+    print(results)
 
 if __name__ == "__main__":
+    freeze_support()
     main()

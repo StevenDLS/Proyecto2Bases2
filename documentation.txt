@@ -1,5 +1,13 @@
 --- 13-06-2026 ---
+
+- 3:40pm -
 Para empezar con gdelt hay que tener estos requerimientos:
     1. Instalar Python (3.10+)
     2. Instalar la biblioteca gdelt, usando (pip install gdelt)
     3. Instalar la biblioteca geopandas, usando (pip install geopandas)
+
+Usar la biblioteca multiprocessing
+Usar el (if __name__ == "__main__") para trabajar con gdelt y el programa no se quede atrapados
+
+- 4:08pm -
+Estamos logrando sacar información de gdelt
