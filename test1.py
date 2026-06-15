@@ -1,13 +1,13 @@
 from multiprocessing import freeze_support
 from gdelt import gdelt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pyspark.sql import SparkSession
 import time
 import warnings
 
 def get_interval():
-    now = datetime.utcnow()
-    rounded_minute = (now.minute // 15) * 15
+    now = datetime.now(timezone.utc) - timedelta(hours = 6)
+    rounded_minute = (now.minute // 5) * 5
 
     interval = now.replace(
         minute=rounded_minute,
@@ -21,7 +21,7 @@ def get_interval():
 def get_gdelt_data(gd2, date_string):
     data = []
 
-    tables = ["mentions", "events", "gkg"]
+    tables = ["mentions"]
 
     for table in tables:
         try:
@@ -35,7 +35,7 @@ def get_gdelt_data(gd2, date_string):
                 data.append({
                     "source_table": table,
                     "interval_time": date_string,
-                    "collected_at": datetime.utcnow().isoformat(),
+                    "collected_at": datetime.now(timezone.utc).isoformat(),
                     "raw_data": row
                 })
 
@@ -67,9 +67,10 @@ def process_with_spark(spark, data):
 
     processed_df.write \
         .format("mongodb") \
-        .mode("append") \
-        .option("database", "gdelt_db") \
+        .option("connection.uri", "mongodb://localhost:27017/") \
+        .option("database", "local") \
         .option("collection", "processed_results") \
+        .mode("append") \
         .save()
 
 
@@ -77,6 +78,7 @@ def main():
     warnings.filterwarnings("ignore")
 
     spark = SparkSession.builder \
+        .remote("sc://localhost:15002") \
         .appName("GDELTAnalyzer") \
         .config(
             "spark.jars.packages",
@@ -84,9 +86,11 @@ def main():
         ) \
         .config(
             "spark.mongodb.write.connection.uri",
-            "mongodb://localhost:27017/"
+            "mongodb://mongodb:27017/"
         ) \
-        .master("spark://localhost:7077") \
+        .config("spark.driver.memory", "4g") \
+        .config("spark.executor.memory", "4g") \
+        .config("spark.driver.maxResultSize", "4g") \
         .getOrCreate()
 
     gd2 = gdelt(version=2)

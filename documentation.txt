@@ -32,3 +32,18 @@ Dependencias de pip importantes para que pyspark funcione de forma remota:
 - 8:53pm -
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 Ya funciona la conexión con el contenedor de Spark
+
+- 10:23pm -
+Esto se agregó al docker-compose.yml. Muy importante para que se inicie la conexión de spark
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    command: /opt/spark/sbin/start-connect-server.sh --master local[*]
+
+- 10:26pm -
+Esto se le agregó al environment de spark para que tenga más memoria con que trabajar
+    - SPARK_DRIVER_MEMORY=4g
+    - SPARK_EXECUTOR_MEMORY=4g
+
+- 12:53am -
+Estoy muy cansado, no funciona la conexión de mongodb con spark
+Las dependencias de mongodb no están funcionando en el contenedor de spark

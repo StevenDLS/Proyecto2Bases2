@@ -1,5 +1,6 @@
-FROM apache/spark:latest
+FROM apache/spark:4.0.3-scala2.13-java17-python3-r-ubuntu
 USER spark
 EXPOSE 4040
 EXPOSE 15002
+COPY test0.py /opt/spark/work-dir
 CMD ["tail", "-f", "/dev/null"]
