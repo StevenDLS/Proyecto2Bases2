@@ -11,3 +11,24 @@ Usar el (if __name__ == "__main__") para trabajar con gdelt y el programa no se 
 
 - 4:08pm -
 Estamos logrando sacar información de gdelt
+
+--- 14-06-2026 ---
+
+- 2:21pm -
+Ya se logró crear un contenedor de Apache Spark, usando el comando (docker run -it)
+
+- 5:56pm -
+Hay que usar el comando (docker exec -it spark /opt/spark/bin/spark-shell) para encender nuestro contenedor de spark
+También ya está el Dockerfile de mongodb y el docker-compose actualizado
+
+- 8:50pm -
+Dependencias de pip importantes para que pyspark funcione de forma remota:
+    pandas
+    pyarrow
+    grpcio
+    grpcio-status
+    zstandard
+
+- 8:53pm -
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Ya funciona la conexión con el contenedor de Spark

@@ -1,0 +1,21 @@
+services:
+  python:
+    container_name: python
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+  spark:
+    container_name: spark
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    ports:
+      - 4040:4040
+      - 15002:15002
+  mongodb:
+    container_name: mongodb
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
+    ports: 
+      - 27017:27017

@@ -1,0 +1,5 @@
+FROM apache/spark:latest
+USER spark
+EXPOSE 4040
+EXPOSE 15002
+CMD ["tail", "-f", "/dev/null"]
