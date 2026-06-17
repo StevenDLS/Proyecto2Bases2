@@ -1,4 +1,12 @@
 services:
+  mongodb:
+    container_name: mongodb
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
+    ports: 
+      - 27017:27017
+
   loader:
     container_name: loader
     build:
@@ -26,15 +34,10 @@ services:
         /opt/spark/sbin/start-connect-server.sh --master local[*]
     volumes:
       - volume:/app/shared
+    depends_on:
+      - mongodb
 
-  mongodb:
-    container_name: mongodb
-    build:
-      context: .
-      dockerfile: Dockerfile.mongodb
-    ports: 
-      - 27017:27017
-
+  # Esto falta
   #frontend:
   #  container_name: frontend
   #  build:

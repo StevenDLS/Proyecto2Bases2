@@ -4,5 +4,6 @@ WORKDIR /app
 EXPOSE 4040
 EXPOSE 15002
 COPY analyzer.py .
-RUN pip install pyspark pyarrow grpcio grpcio-status zstandard pandas
+RUN mkdir parquets
+RUN pip install pandas pyarrow pyspark
 #CMD ["python", "analyzer.py"]

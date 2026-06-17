@@ -1,15 +1,21 @@
+import os
+import time
+import warnings
+import json
 from multiprocessing import freeze_support
 from gdelt import gdelt
 from datetime import datetime, timedelta, timezone
-import time
-import warnings
 
-def get_interval():
-    now = datetime.now(timezone.utc) - timedelta(hours = 6)
-    rounded_minute = (now.minute // 15) * 15
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+JSONS_DIR_PATH: str = os.path.join(BASE_PATH, "shared")
+JSON_EXTENSION: str = ".json"
 
-    interval = now.replace(
-        minute=rounded_minute,
+def getDatetimeIntervalFromNow() -> datetime:
+    now: datetime = datetime.now(timezone.utc) - timedelta(hours = 6)
+    rounded_minute: int = (now.minute // 15) * 15
+
+    interval: datetime = now.replace(
+        minute = rounded_minute,
         second = 0,
         microsecond = 0
     )
@@ -17,29 +23,23 @@ def get_interval():
     return interval
 
 
-def get_gdelt_data(gd2, date_string):
-    data = []
+def getGdeltData(gd2, dateString: str):
+    data: list[dict] = []
 
-    tables = ["events", "mentions", "gkg"]
+    tables: list[str] = ["events", "mentions", "gkg"]
 
     for table in tables:
         try:
             results = gd2.Search(
-                date = date_string,
+                date = dateString,
                 table = table,
-                output = 'json'
+                output = "json"
             )
 
-            #for row in results:
-            #    data.append({
-            #        "source_table": table,
-            #        "interval_time": date_string,
-            #        "collected_at": datetime.now(timezone.utc).isoformat(),
-            #        "raw_data": row
-            #    })
-
-            with open('shared/' + table + '.json', 'w') as file:
-                file.write(results)
+            with open(os.path.join(JSONS_DIR_PATH, table + JSON_EXTENSION), 'w') as file:
+                parsedData = json.loads(results)
+                formattedJSON = json.dumps(parsedData, indent = 4)
+                file.write(formattedJSON)
 
         except Exception as e:
             print(f"Error consultando {table}: {e}")
@@ -52,12 +52,12 @@ def main():
     gd2 = gdelt(version=2)
 
     while True:
-        interval = get_interval()
-        date_string = interval.strftime("%Y %b %d %H:%M")
+        interval = getDatetimeIntervalFromNow()
+        dateString = interval.strftime("%Y %b %d %H:%M")
 
-        print(f"\nConsultando GDELT para: {date_string}")
+        print(f"\nConsultando GDELT para: {dateString}")
 
-        get_gdelt_data(gd2, date_string)
+        getGdeltData(gd2, dateString)
 
         print("Esperando 15 minutos...")
         time.sleep(15 * 60)

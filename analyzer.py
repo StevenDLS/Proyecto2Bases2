@@ -1,54 +1,41 @@
-from multiprocessing import freeze_support
-from pyspark.sql import SparkSession
+import os
 import warnings
 import json
+from multiprocessing import freeze_support
+from pyspark.sql import SparkSession, DataFrame
 
-def clean_data_for_spark(data):
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+JSONS_DIR_PATH: str = os.path.join(BASE_PATH, "shared")
+WAREHOUSE_PATH: str = os.path.join(BASE_PATH, "parquets")
+JSON_EXTENSION: str = ".json"
+
+def cleanData(data: list[dict]):
     if not data:
         return data
 
     # Obtener todas las columnas posibles
-    all_keys = set()
+    allKeys: set = set()
     for row in data:
-        all_keys.update(row.keys())
+        allKeys.update(row.keys())
 
     # Quitar columnas donde todos los valores son None
-    valid_keys = []
-    for key in all_keys:
+    validKeys: list = []
+    for key in allKeys:
         if any(row.get(key) is not None for row in data):
-            valid_keys.append(key)
+            validKeys.append(key)
 
     # Reconstruir filas solo con columnas válidas
-    cleaned = []
+    cleaned: list[dict] = []
     for row in data:
-        cleaned_row = {}
-        for key in valid_keys:
-            cleaned_row[key] = row.get(key)
-        cleaned.append(cleaned_row)
+        cleanedRow: dict = {}
+        for key in validKeys:
+            cleanedRow[key] = row.get(key)
+        cleaned.append(cleanedRow)
 
     return cleaned
 
-def process_with_spark(spark, data, database, collection):
-    data = clean_data_for_spark(data)
-
-    if not data:
-        print(f"No hay datos válidos para {collection}")
-        return
-
-    df = spark.createDataFrame(data)
-
-    df.write \
-        .format("mongodb") \
-        .option("connection.uri", "mongodb://mongodb:27017/") \
-        .option("database", database) \
-        .option("collection", collection) \
-        .mode("append") \
-        .save()
-
-def main():
-    warnings.filterwarnings("ignore")
-
-    spark = SparkSession.builder \
+def createSparkSession() -> SparkSession:
+    sparkSession = SparkSession.builder \
         .appName("GDELTAnalyzer") \
         .config(
             "spark.jars.packages",
@@ -58,23 +45,33 @@ def main():
             "spark.mongodb.write.connection.uri",
             "mongodb://mongodb:27017/"
         ) \
+        .config("spark.sql.warehouse.dir", WAREHOUSE_PATH) \
         .config("spark.driver.memory", "4g") \
         .config("spark.executor.memory", "4g") \
         .config("spark.driver.maxResultSize", "4g") \
         .getOrCreate()
     
+    return sparkSession
+
+def createTables(sparkSession: SparkSession, filePath: str, tableName: str) -> None:
+    tables: list[str] = [t.name for t in sparkSession.catalog.listTables()]
+    if tableName not in tables:
+        df: DataFrame = sparkSession.read.json(filePath, multiLine = True)
+        df.write.mode("overwrite").format("parquet").saveAsTable(tableName)
+
+def main():
+    warnings.filterwarnings("ignore")
+
+    sparkSession = createSparkSession()
+    
     tables = ["events", "mentions", "gkg"]
-    
-    while True:
-        for table in tables:
-            try:
-                with open('shared/' + table + '.json', 'r') as file:
-                    dataString = file.read()
-                    dataJSON = json.loads(dataString)
-                    process_with_spark(spark, dataJSON, 'local', table)
-    
-            except Exception as e:
-                print(f"Error consultando {table}: {e}")
+    for table in tables:
+        try:
+            filePath: str = os.path.join(JSONS_DIR_PATH, table + JSON_EXTENSION)
+            createTables(sparkSession, filePath, table)
+
+        except Exception as e:
+            print(f"Error consultando {table}: {e}")
 
 if __name__ == "__main__":
     freeze_support()
