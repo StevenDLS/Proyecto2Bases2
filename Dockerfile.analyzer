@@ -1,0 +1,8 @@
+FROM apache/spark:python3
+USER root
+WORKDIR /app
+EXPOSE 4040
+EXPOSE 15002
+COPY analyzer.py .
+RUN pip install pyspark pyarrow grpcio grpcio-status zstandard pandas
+#CMD ["python", "analyzer.py"]

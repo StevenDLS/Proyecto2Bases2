@@ -1,18 +1,17 @@
 services:
-  mongodb:
-    container_name: mongodb
+  loader:
+    container_name: loader
     build:
       context: .
-      dockerfile: Dockerfile.mongodb
-    ports: 
-      - 27017:27017
+      dockerfile: Dockerfile.loader
     volumes:
-      - mongo_data:/data/db
-  spark:
-    container_name: spark
+      - volume:/app/shared
+
+  analyzer:
+    container_name: analyzer
     build:
       context: .
-      dockerfile: Dockerfile.spark
+      dockerfile: Dockerfile.analyzer
     ports:
       - 4040:4040
       - 15002:15002
@@ -20,18 +19,27 @@ services:
       - SPARK_NO_DAEMONIZE=true
       - SPARK_DRIVER_MEMORY=4g
       - SPARK_EXECUTOR_MEMORY=4g
-    command: 
+    command:
       - sh
       - -c
       - |
         /opt/spark/sbin/start-connect-server.sh --master local[*]
-    depends_on:
-      - mongodb
-  #python:
-  #  container_name: python
+    volumes:
+      - volume:/app/shared
+
+  mongodb:
+    container_name: mongodb
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
+    ports: 
+      - 27017:27017
+
+  #frontend:
+  #  container_name: frontend
   #  build:
   #    context: .
-  #    dockerfile: Dockerfile.python
+  #    dockerfile: Dockerfile.frontend
 volumes:
-  mongo_data:
+  volume:
   

@@ -47,3 +47,16 @@ Esto se le agregó al environment de spark para que tenga más memoria con que t
 - 12:53am -
 Estoy muy cansado, no funciona la conexión de mongodb con spark
 Las dependencias de mongodb no están funcionando en el contenedor de spark
+
+--- 16-06-2026 ---
+
+- 1:01pm -
+Ya se puede hacer la conexión de Spark con Mongodb, hay que correr el script de Python
+dentro del contenedor de Spark y antes de correrlo hay que instalarle todas las dependencias
+para que puede hacer
+
+- 7:23pm -
+Ya se está guardando archivos en Mongodb, con el formato correcto. Tomó bastante tiempo solucionar
+problemas con las estructuras que gdelt nos daba. Más bien fueron errores propios, pero ya está
+funcionando. Aún no se está guardando datos automáticamente a la base de datos, pero el loader
+está funcionando automáticamente

@@ -21,7 +21,7 @@ def get_interval():
 def get_gdelt_data(gd2, date_string):
     data = []
 
-    tables = ["mentions"]
+    tables = ["mentions", "events", "gkg"]
 
     for table in tables:
         try:

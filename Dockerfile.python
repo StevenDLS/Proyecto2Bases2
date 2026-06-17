@@ -1,9 +1,0 @@
-FROM python:latest
-
-USER root
-
-COPY test0.py /
-
-RUN pip install gdelt geopandas pyspark pyarrow grpcio grpcio-status zstandard
-
-CMD ["python", "test0.py"]
