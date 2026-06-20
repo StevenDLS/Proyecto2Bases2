@@ -558,36 +558,73 @@ def conflictos_religion_region(spark):
 
 def temas_gkg_continente_anio(spark):
     sql = """
-        WITH locs_v2 AS (
+        WITH locs_v2_raw AS (
             SELECT
                 GKGRECORDID,
                 CAST(SUBSTR(CAST(`DATE` AS STRING), 1, 4) AS INT) AS anio,
                 element_at(split(loc, '#'), 3) AS pais,
-                CAST(element_at(split(loc, '#'), 6) AS DOUBLE) AS lat,
-                CAST(element_at(split(loc, '#'), 7) AS DOUBLE) AS lon
+                TRIM(element_at(split(loc, '#'), 6)) AS lat_raw,
+                TRIM(element_at(split(loc, '#'), 7)) AS lon_raw
             FROM gkg
             LATERAL VIEW explode(split(V2Locations, ';')) lv AS loc
             WHERE V2Locations IS NOT NULL
               AND V2Locations <> ''
         ),
-        locs_old AS (
+        locs_v2 AS (
+            SELECT
+                GKGRECORDID,
+                anio,
+                pais,
+                CASE
+                    WHEN lat_raw IS NULL OR lower(lat_raw) = 'null' OR lat_raw = '' THEN NULL
+                    WHEN lat_raw RLIKE '^-?[0-9]+(\\\\.[0-9]+)?$' THEN CAST(lat_raw AS DOUBLE)
+                    ELSE NULL
+                END AS lat,
+                CASE
+                    WHEN lon_raw IS NULL OR lower(lon_raw) = 'null' OR lon_raw = '' THEN NULL
+                    WHEN lon_raw RLIKE '^-?[0-9]+(\\\\.[0-9]+)?$' THEN CAST(lon_raw AS DOUBLE)
+                    ELSE NULL
+                END AS lon
+            FROM locs_v2_raw
+        ),
+
+        locs_old_raw AS (
             SELECT
                 GKGRECORDID,
                 CAST(SUBSTR(CAST(`DATE` AS STRING), 1, 4) AS INT) AS anio,
                 element_at(split(loc, '#'), 3) AS pais,
-                CAST(element_at(split(loc, '#'), 5) AS DOUBLE) AS lat,
-                CAST(element_at(split(loc, '#'), 6) AS DOUBLE) AS lon
+                TRIM(element_at(split(loc, '#'), 5)) AS lat_raw,
+                TRIM(element_at(split(loc, '#'), 6)) AS lon_raw
             FROM gkg
             LATERAL VIEW explode(split(Locations, ';')) lv AS loc
             WHERE (V2Locations IS NULL OR V2Locations = '')
               AND Locations IS NOT NULL
               AND Locations <> ''
         ),
+        locs_old AS (
+            SELECT
+                GKGRECORDID,
+                anio,
+                pais,
+                CASE
+                    WHEN lat_raw IS NULL OR lower(lat_raw) = 'null' OR lat_raw = '' THEN NULL
+                    WHEN lat_raw RLIKE '^-?[0-9]+(\\\\.[0-9]+)?$' THEN CAST(lat_raw AS DOUBLE)
+                    ELSE NULL
+                END AS lat,
+                CASE
+                    WHEN lon_raw IS NULL OR lower(lon_raw) = 'null' OR lon_raw = '' THEN NULL
+                    WHEN lon_raw RLIKE '^-?[0-9]+(\\\\.[0-9]+)?$' THEN CAST(lon_raw AS DOUBLE)
+                    ELSE NULL
+                END AS lon
+            FROM locs_old_raw
+        ),
+
         locs AS (
             SELECT * FROM locs_v2
             UNION ALL
             SELECT * FROM locs_old
         ),
+
         temas AS (
             SELECT
                 GKGRECORDID,
@@ -597,6 +634,7 @@ def temas_gkg_continente_anio(spark):
             WHERE COALESCE(V2Themes, Themes) IS NOT NULL
               AND TRIM(theme_raw) <> ''
         ),
+
         base AS (
             SELECT DISTINCT
                 region_from_geo(l.pais, l.lat, l.lon) AS continente,
@@ -609,6 +647,7 @@ def temas_gkg_continente_anio(spark):
             WHERE t.tema IS NOT NULL
               AND t.tema <> ''
         ),
+
         conteo AS (
             SELECT
                 continente,
@@ -616,8 +655,11 @@ def temas_gkg_continente_anio(spark):
                 tema,
                 COUNT(DISTINCT GKGRECORDID) AS total_documentos
             FROM base
+            WHERE continente IS NOT NULL
+              AND continente <> ''
             GROUP BY continente, anio, tema
         ),
+
         ranked AS (
             SELECT
                 *,
@@ -627,6 +669,7 @@ def temas_gkg_continente_anio(spark):
                 ) AS ranking
             FROM conteo
         )
+
         SELECT *
         FROM ranked
         WHERE ranking <= 20
