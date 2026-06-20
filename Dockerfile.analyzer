@@ -6,4 +6,3 @@ EXPOSE 15002
 COPY analyzer.py .
 RUN mkdir parquets
 RUN pip install pandas pyarrow pyspark
-#CMD ["python", "analyzer.py"]

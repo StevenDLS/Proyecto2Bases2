@@ -63,3 +63,9 @@ está funcionando automáticamente
 
 - 12:06am -
 Ya funciona cargar los parquets Ahhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+
+--- 20-06-2026 ---
+
+- 12:14pm -
+Se puso una prueba de las queries. No parecen tener errores. Técnicamente los datos se pueden guardar
+en mongodb, aunque siento que deberíamos revisar los datos

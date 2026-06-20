@@ -1,16 +1,13 @@
-from pyspark.sql import SparkSession, functions as F
+from pyspark.sql import functions as F
 from pyspark.sql.types import StructType
-
-spark = SparkSession.builder.appName("GDELT Parquet Queries").getOrCreate()
-
 
 # ============================================================
 # 0. CARGA DE PARQUETS
 # ============================================================
 
-EVENTS_PARQUET = "processed_results/events"
-MENTIONS_PARQUET = "processed_results/mentions"
-GKG_PARQUET = "processed_results/gkg"
+EVENTS_PARQUET = "parquets/events"
+MENTIONS_PARQUET = "parquets/mentions"
+GKG_PARQUET = "parquets/gkg"
 
 
 def normalizar_numberlong(df):
@@ -99,11 +96,9 @@ def region_from_geo(country, lat, lon):
 
     return "Sin región"
 
-
-spark.udf.register("region_from_geo", region_from_geo, "string")
-
-
-def cargar_parquets():
+def cargar_parquets(spark):
+    spark.udf.register("region_from_geo", region_from_geo, "string")
+    
     events = normalizar_numberlong(spark.read.parquet(EVENTS_PARQUET))
     mentions = normalizar_numberlong(spark.read.parquet(MENTIONS_PARQUET))
     gkg = normalizar_numberlong(spark.read.parquet(GKG_PARQUET))
@@ -113,19 +108,14 @@ def cargar_parquets():
     gkg.createOrReplaceTempView("gkg")
 
 
-def ejecutar(sql):
+def ejecutar(spark, sql):
     return [r.asDict() for r in spark.sql(sql).collect()]
-
-
-# Llamar una vez antes de ejecutar queries
-cargar_parquets()
-
 
 # ============================================================
 # 1. MAPA DE CALOR DE INTENSIDAD DE CONFLICTOS POR PAÍS POR DÍA
 # ============================================================
 
-def mapa_calor_intensidad_conflictos():
+def mapa_calor_intensidad_conflictos(spark):
     sql = """
         SELECT
             to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd') AS fecha,
@@ -150,14 +140,14 @@ def mapa_calor_intensidad_conflictos():
             ActionGeo_CountryCode
         ORDER BY fecha DESC, intensidad_total_goldstein DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 2. TOP 10 PAÍSES QUE GENERAN MÁS EVENTOS NOTICIOSOS POR DÍA
 # ============================================================
 
-def top_10_paises_eventos_por_dia():
+def top_10_paises_eventos_por_dia(spark):
     sql = """
         WITH diarios AS (
             SELECT
@@ -187,14 +177,14 @@ def top_10_paises_eventos_por_dia():
         WHERE ranking <= 10
         ORDER BY fecha DESC, ranking
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 3. CORRELACIÓN ENTRE AVGTONE Y NÚMERO DE FUENTES
 # ============================================================
 
-def correlacion_avg_tone_fuentes():
+def correlacion_avg_tone_fuentes(spark):
     sql = """
         SELECT
             COUNT(*) AS eventos_analizados,
@@ -206,14 +196,14 @@ def correlacion_avg_tone_fuentes():
         WHERE AvgTone IS NOT NULL
           AND NumSources IS NOT NULL
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 4. DISTRIBUCIÓN DE TIPOS DE EVENTOS CAMEO POR REGIÓN DEL MUNDO
 # ============================================================
 
-def distribucion_cameo_por_region():
+def distribucion_cameo_por_region(spark):
     sql = """
         WITH base AS (
             SELECT
@@ -256,14 +246,14 @@ def distribucion_cameo_por_region():
         FROM conteo
         ORDER BY region, total_eventos DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 5. MATRIZ DE INTERACCIÓN ENTRE TIPOS DE ACTORES
 # ============================================================
 
-def matriz_interaccion_actores():
+def matriz_interaccion_actores(spark):
     sql = """
         WITH base AS (
             SELECT
@@ -305,14 +295,14 @@ def matriz_interaccion_actores():
         GROUP BY actor1_categoria, actor2_categoria
         ORDER BY frecuencia DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 6. PAÍSES CON MAYOR COBERTURA MEDIÁTICA POR EVENTO
 # ============================================================
 
-def paises_mayor_cobertura_mediatica():
+def paises_mayor_cobertura_mediatica(spark):
     sql = """
         WITH eventos AS (
             SELECT DISTINCT
@@ -347,14 +337,14 @@ def paises_mayor_cobertura_mediatica():
         HAVING total_eventos >= 5
         ORDER BY razon_menciones_por_evento DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 7. TENDENCIA DE SENTIMIENTO POR PAÍS
 # ============================================================
 
-def tendencia_sentimiento_pais():
+def tendencia_sentimiento_pais(spark):
     sql = """
         WITH diarios AS (
             SELECT
@@ -386,14 +376,14 @@ def tendencia_sentimiento_pais():
         FROM diarios
         ORDER BY pais, fecha
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 8. CONFLICTOS ENTRE ACTORES: PARES DE PAÍSES MÁS FRECUENTES
 # ============================================================
 
-def conflictos_pares_paises():
+def conflictos_pares_paises(spark):
     sql = """
         WITH base AS (
             SELECT
@@ -421,14 +411,14 @@ def conflictos_pares_paises():
         ORDER BY total_conflictos DESC
         LIMIT 50
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 9. DETECCIÓN DE ESCALADA DE EVENTOS EN 24 HORAS
 # ============================================================
 
-def escalada_eventos_menciones_24h():
+def escalada_eventos_menciones_24h(spark):
     sql = """
         WITH hourly AS (
             SELECT
@@ -496,14 +486,14 @@ def escalada_eventos_menciones_24h():
         ORDER BY aceleracion_menciones DESC
         LIMIT 50
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 10. AGRUPAMIENTO DE CONFLICTOS BASADOS EN RELIGIÓN POR REGIÓN
 # ============================================================
 
-def conflictos_religion_region():
+def conflictos_religion_region(spark):
     sql = """
         WITH base AS (
             SELECT
@@ -537,14 +527,14 @@ def conflictos_religion_region():
         GROUP BY region, religion_actor1, religion_actor2
         ORDER BY total_conflictos DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 11. PRINCIPALES TEMAS EXTRAÍDOS POR GKG POR CONTINENTE POR AÑO
 # ============================================================
 
-def temas_gkg_continente_anio():
+def temas_gkg_continente_anio(spark):
     sql = """
         WITH locs_v2 AS (
             SELECT
@@ -620,14 +610,14 @@ def temas_gkg_continente_anio():
         WHERE ranking <= 20
         ORDER BY anio DESC, continente, ranking
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 12. ORGANIZACIONES MÁS MENCIONADAS GLOBALMENTE POR DÍA
 # ============================================================
 
-def organizaciones_mas_mencionadas_por_dia():
+def organizaciones_mas_mencionadas_por_dia(spark):
     sql = """
         WITH orgs AS (
             SELECT
@@ -661,7 +651,7 @@ def organizaciones_mas_mencionadas_por_dia():
         WHERE ranking <= 20
         ORDER BY fecha DESC, ranking
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
@@ -669,7 +659,7 @@ def organizaciones_mas_mencionadas_por_dia():
 # ¿EL TONO DE HOY PREDICE CONFLICTOS DE MAÑANA?
 # ============================================================
 
-def analisis_rezago_tono_conflicto():
+def analisis_rezago_tono_conflicto(spark):
     sql = """
         WITH diario AS (
             SELECT
@@ -713,14 +703,14 @@ def analisis_rezago_tono_conflicto():
         HAVING dias_analizados >= 3
         ORDER BY ABS(correlacion_tono_hoy_conflicto_manana) DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 14. GRAFO DE INTERACCIONES DIPLOMÁTICAS VS CONFLICTOS ENTRE PAÍSES
 # ============================================================
 
-def grafo_diplomacia_vs_conflicto():
+def grafo_diplomacia_vs_conflicto(spark):
     sql = """
         WITH pares AS (
             SELECT
@@ -762,14 +752,14 @@ def grafo_diplomacia_vs_conflicto():
         ORDER BY total_interacciones DESC
         LIMIT 100
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 15. ÍNDICE DE DIVERSIDAD DE FUENTES POR PAÍS
 # ============================================================
 
-def indice_diversidad_fuentes_pais():
+def indice_diversidad_fuentes_pais(spark):
     sql = """
         WITH joined AS (
             SELECT
@@ -812,14 +802,14 @@ def indice_diversidad_fuentes_pais():
         GROUP BY sc.pais, t.medios_distintos, t.total_menciones
         ORDER BY indice_shannon_fuentes DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
 # 16. FRECUENCIA DE CONFLICTOS POR ETNIA DE LOS ACTORES
 # ============================================================
 
-def frecuencia_conflictos_por_etnia():
+def frecuencia_conflictos_por_etnia(spark):
     sql = """
         WITH etnias AS (
             SELECT
@@ -852,7 +842,7 @@ def frecuencia_conflictos_por_etnia():
         GROUP BY etnia
         ORDER BY apariciones DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
 
 
 # ============================================================
@@ -860,7 +850,7 @@ def frecuencia_conflictos_por_etnia():
 # EVENTOS CON MÁS DE 100 MENCIONES EN MENOS DE 1 HORA
 # ============================================================
 
-def noticias_ultima_hora():
+def noticias_ultima_hora(spark):
     sql = """
         WITH mention_times AS (
             SELECT
@@ -908,4 +898,4 @@ def noticias_ultima_hora():
         WHERE ph.menciones_primera_hora >= 100
         ORDER BY ph.menciones_primera_hora DESC
     """
-    return ejecutar(sql)
+    return ejecutar(spark, sql)
