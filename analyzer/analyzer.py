@@ -7,7 +7,7 @@ from multiprocessing import freeze_support
 from pyspark.sql import SparkSession, DataFrame
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-JSONS_DIR_PATH: str = os.path.join(BASE_PATH, "shared")
+JSONS_DIR_PATH: str = os.path.join(BASE_PATH, "raw_jsons")
 PARQUET_DIR_PATH: str = os.path.join(BASE_PATH, "parquets")
 JSON_EXTENSION: str = ".json"
 
@@ -39,14 +39,6 @@ def cleanData(data: list[dict]):
 def createSparkSession() -> SparkSession:
     sparkSession = SparkSession.builder \
         .appName("GDELTAnalyzer") \
-        .config(
-            "spark.jars.packages",
-            "org.mongodb.spark:mongo-spark-connector_2.13:11.1.0"
-        ) \
-        .config(
-            "spark.mongodb.write.connection.uri",
-            "mongodb://mongodb:27017/"
-        ) \
         .config("spark.sql.warehouse.dir", PARQUET_DIR_PATH) \
         .config("spark.driver.memory", "4g") \
         .config("spark.executor.memory", "4g") \

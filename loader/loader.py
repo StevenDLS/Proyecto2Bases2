@@ -7,7 +7,7 @@ from gdelt import gdelt
 from datetime import datetime, timedelta, timezone
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-JSONS_DIR_PATH: str = os.path.join(BASE_PATH, "shared")
+JSONS_DIR_PATH: str = os.path.join(BASE_PATH, "raw_jsons")
 JSON_EXTENSION: str = ".json"
 
 def getDatetimeIntervalFromNow() -> datetime:

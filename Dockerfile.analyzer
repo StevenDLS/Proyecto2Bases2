@@ -3,6 +3,9 @@ USER root
 WORKDIR /app
 EXPOSE 4040
 EXPOSE 15002
-COPY analyzer.py .
+COPY ./analyzer/ .
 RUN mkdir parquets
+RUN mkdir parquets/events
+RUN mkdir parquets/mentions
+RUN mkdir parquets/gkg
 RUN pip install pandas pyarrow pyspark

@@ -2,5 +2,5 @@ FROM python:latest
 USER root
 WORKDIR /app
 RUN pip install gdelt geopandas
-COPY loader.py .
+COPY ./loader/ .
 CMD ["python", "loader.py"]
