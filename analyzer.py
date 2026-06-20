@@ -90,15 +90,15 @@ def main():
     print(pandas.DataFrame(queries.paises_mayor_cobertura_mediatica(sparkSession)))
     print(pandas.DataFrame(queries.tendencia_sentimiento_pais(sparkSession)))
     print(pandas.DataFrame(queries.conflictos_pares_paises(sparkSession)))
-    print(pandas.DataFrame(queries.escalada_eventos_menciones_24h(sparkSession)))
-    print(pandas.DataFrame(queries.conflictos_religion_region(sparkSession)))
+    print(pandas.DataFrame(queries.escalada_eventos_menciones_24h(sparkSession))) # Retorna lista vacía por los momentos
+    print(pandas.DataFrame(queries.conflictos_religion_region(sparkSession))) # Retorna una sola fila
     print(pandas.DataFrame(queries.temas_gkg_continente_anio(sparkSession)))
     print(pandas.DataFrame(queries.organizaciones_mas_mencionadas_por_dia(sparkSession)))
     print(pandas.DataFrame(queries.analisis_rezago_tono_conflicto(sparkSession)))
     print(pandas.DataFrame(queries.grafo_diplomacia_vs_conflicto(sparkSession)))
     print(pandas.DataFrame(queries.indice_diversidad_fuentes_pais(sparkSession)))
-    print(pandas.DataFrame(queries.frecuencia_conflictos_por_etnia(sparkSession)))
-    print(pandas.DataFrame(queries.noticias_ultima_hora(sparkSession)))
+    print(pandas.DataFrame(queries.frecuencia_conflictos_por_etnia(sparkSession))) # Retorna una sola fila
+    print(pandas.DataFrame(queries.noticias_ultima_hora(sparkSession))) # Retorna lista vacía
 
 if __name__ == "__main__":
     freeze_support()

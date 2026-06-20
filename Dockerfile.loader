@@ -1,11 +1,6 @@
 FROM python:latest
-
 USER root
-
 WORKDIR /app
-
 RUN pip install gdelt geopandas
-
 COPY loader.py .
-
 CMD ["python", "loader.py"]
