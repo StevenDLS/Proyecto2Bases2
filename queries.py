@@ -143,7 +143,7 @@ def mapa_calor_intensidad_conflictos(spark):
     return ejecutar(spark, sql)
 
 
-# ============================================================
+# ============================================================Detallito
 # 2. TOP 10 PAÍSES QUE GENERAN MÁS EVENTOS NOTICIOSOS POR DÍA
 # ============================================================
 
@@ -414,35 +414,42 @@ def conflictos_pares_paises(spark):
     return ejecutar(spark, sql)
 
 
-# ============================================================
+# ============================================================ VOID
 # 9. DETECCIÓN DE ESCALADA DE EVENTOS EN 24 HORAS
 # ============================================================
 
-def escalada_eventos_menciones_24h(spark):
-    sql = """
-        WITH hourly AS (
+def escalada_eventos_menciones_24h(spark, min_menciones_24h=10):
+    sql = f"""
+        WITH mention_times AS (
             SELECT
                 GLOBALEVENTID,
-                date_trunc(
-                    'hour',
-                    to_timestamp(CAST(MentionTimeDate AS STRING), 'yyyyMMddHHmmss')
-                ) AS hora,
-                unix_timestamp(
-                    date_trunc(
-                        'hour',
-                        to_timestamp(CAST(MentionTimeDate AS STRING), 'yyyyMMddHHmmss')
-                    )
-                ) AS hora_unix,
-                COUNT(*) AS menciones_hora
+                to_timestamp(
+                    substring(
+                        regexp_replace(CAST(MentionTimeDate AS STRING), '\\\\.0$', ''),
+                        1,
+                        14
+                    ),
+                    'yyyyMMddHHmmss'
+                ) AS mention_ts
             FROM mentions
             WHERE GLOBALEVENTID IS NOT NULL
               AND MentionTimeDate IS NOT NULL
+        ),
+        mention_times_valid AS (
+            SELECT *
+            FROM mention_times
+            WHERE mention_ts IS NOT NULL
+        ),
+        hourly AS (
+            SELECT
+                GLOBALEVENTID,
+                date_trunc('hour', mention_ts) AS hora,
+                unix_timestamp(date_trunc('hour', mention_ts)) AS hora_unix,
+                COUNT(*) AS menciones_hora
+            FROM mention_times_valid
             GROUP BY
                 GLOBALEVENTID,
-                date_trunc(
-                    'hour',
-                    to_timestamp(CAST(MentionTimeDate AS STRING), 'yyyyMMddHHmmss')
-                )
+                date_trunc('hour', mention_ts)
         ),
         rolling AS (
             SELECT
@@ -465,9 +472,23 @@ def escalada_eventos_menciones_24h(spark):
                     ORDER BY hora_unix
                 ) AS menciones_24h_previas
             FROM rolling
+        ),
+        events_dedup AS (
+            SELECT *
+            FROM (
+                SELECT
+                    e.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY GLOBALEVENTID
+                        ORDER BY SQLDATE DESC
+                    ) AS rn
+                FROM events e
+                WHERE GLOBALEVENTID IS NOT NULL
+            )
+            WHERE rn = 1
         )
         SELECT
-            e.GLOBALEVENTID,
+            a.GLOBALEVENTID,
             to_date(CAST(e.SQLDATE AS STRING), 'yyyyMMdd') AS fecha_evento,
             e.ActionGeo_CountryCode AS pais,
             e.EventCode,
@@ -477,11 +498,12 @@ def escalada_eventos_menciones_24h(spark):
             a.menciones_ultimas_24h,
             COALESCE(a.menciones_24h_previas, 0) AS menciones_24h_previas,
             a.menciones_ultimas_24h - COALESCE(a.menciones_24h_previas, 0)
-                AS aceleracion_menciones
+                AS aceleracion_menciones,
+            e.SOURCEURL
         FROM aceleracion a
-        JOIN events e
+        LEFT JOIN events_dedup e
             ON a.GLOBALEVENTID = e.GLOBALEVENTID
-        WHERE a.menciones_ultimas_24h >= 10
+        WHERE a.menciones_ultimas_24h >= {min_menciones_24h}
           AND a.menciones_ultimas_24h - COALESCE(a.menciones_24h_previas, 0) > 0
         ORDER BY aceleracion_menciones DESC
         LIMIT 50
@@ -489,7 +511,7 @@ def escalada_eventos_menciones_24h(spark):
     return ejecutar(spark, sql)
 
 
-# ============================================================
+# ============================================================1 row only
 # 10. AGRUPAMIENTO DE CONFLICTOS BASADOS EN RELIGIÓN POR REGIÓN
 # ============================================================
 
@@ -805,7 +827,7 @@ def indice_diversidad_fuentes_pais(spark):
     return ejecutar(spark, sql)
 
 
-# ============================================================
+# ============================================================ 1 row
 # 16. FRECUENCIA DE CONFLICTOS POR ETNIA DE LOS ACTORES
 # ============================================================
 
@@ -845,27 +867,39 @@ def frecuencia_conflictos_por_etnia(spark):
     return ejecutar(spark, sql)
 
 
-# ============================================================
+# ============================================================ VOID
 # 17. DETECCIÓN DE NOTICIAS DE ÚLTIMA HORA:
 # EVENTOS CON MÁS DE 100 MENCIONES EN MENOS DE 1 HORA
 # ============================================================
 
-def noticias_ultima_hora(spark):
-    sql = """
+def noticias_ultima_hora(spark, min_menciones=100):
+    sql = f"""
         WITH mention_times AS (
             SELECT
                 GLOBALEVENTID,
                 MentionSourceName,
-                to_timestamp(CAST(MentionTimeDate AS STRING), 'yyyyMMddHHmmss') AS mention_ts
+                to_timestamp(
+                    substring(
+                        regexp_replace(CAST(MentionTimeDate AS STRING), '\\\\.0$', ''),
+                        1,
+                        14
+                    ),
+                    'yyyyMMddHHmmss'
+                ) AS mention_ts
             FROM mentions
             WHERE GLOBALEVENTID IS NOT NULL
               AND MentionTimeDate IS NOT NULL
+        ),
+        mention_times_valid AS (
+            SELECT *
+            FROM mention_times
+            WHERE mention_ts IS NOT NULL
         ),
         firsts AS (
             SELECT
                 GLOBALEVENTID,
                 MIN(mention_ts) AS primera_mencion
-            FROM mention_times
+            FROM mention_times_valid
             GROUP BY GLOBALEVENTID
         ),
         primera_hora AS (
@@ -873,15 +907,29 @@ def noticias_ultima_hora(spark):
                 mt.GLOBALEVENTID,
                 COUNT(*) AS menciones_primera_hora,
                 COUNT(DISTINCT mt.MentionSourceName) AS fuentes_primera_hora
-            FROM mention_times mt
+            FROM mention_times_valid mt
             JOIN firsts f
                 ON mt.GLOBALEVENTID = f.GLOBALEVENTID
             WHERE mt.mention_ts >= f.primera_mencion
               AND mt.mention_ts < f.primera_mencion + INTERVAL 1 HOUR
             GROUP BY mt.GLOBALEVENTID
+        ),
+        events_dedup AS (
+            SELECT *
+            FROM (
+                SELECT
+                    e.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY GLOBALEVENTID
+                        ORDER BY SQLDATE DESC
+                    ) AS rn
+                FROM events e
+                WHERE GLOBALEVENTID IS NOT NULL
+            )
+            WHERE rn = 1
         )
         SELECT
-            e.GLOBALEVENTID,
+            ph.GLOBALEVENTID,
             f.primera_mencion,
             to_date(CAST(e.SQLDATE AS STRING), 'yyyyMMdd') AS fecha_evento,
             e.ActionGeo_CountryCode AS pais,
@@ -893,9 +941,9 @@ def noticias_ultima_hora(spark):
         FROM primera_hora ph
         JOIN firsts f
             ON ph.GLOBALEVENTID = f.GLOBALEVENTID
-        JOIN events e
+        LEFT JOIN events_dedup e
             ON ph.GLOBALEVENTID = e.GLOBALEVENTID
-        WHERE ph.menciones_primera_hora >= 100
+        WHERE ph.menciones_primera_hora >= {min_menciones}
         ORDER BY ph.menciones_primera_hora DESC
     """
     return ejecutar(spark, sql)
