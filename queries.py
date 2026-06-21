@@ -1032,16 +1032,6 @@ def noticias_ultima_hora(spark, min_menciones=100):
     """
     return ejecutar(spark, sql, "noticias_ultima_hora.json")
 
-# ============================================================
-# HELPER PARA ASEGURAR SALIDA JSON-FRIENDLY COMO STRING
-# ============================================================
-
-def ejecutar_string(spark, sql):
-    return [
-        {k: "" if v is None else str(v) for k, v in r.asDict().items()}
-        for r in spark.sql(sql).collect()
-    ]
-
 
 # ============================================================
 # IDEA 1:
@@ -1136,7 +1126,7 @@ def actores_mas_asociados_eventos_negativos(spark):
             CAST(porcentaje_conflicto AS STRING) AS porcentaje_conflicto
         FROM ordenado
     """
-    return ejecutar_string(spark, sql)
+    return ejecutar(spark, sql, "actores_mas_asociados_eventos_negativos.json")
 
 
 # ============================================================
@@ -1229,4 +1219,4 @@ def eventos_positivos_mas_cubiertos_por_pais(spark):
             CAST(COALESCE(SOURCEURL, 'SIN_URL') AS STRING) AS source_url
         FROM filtrado
     """
-    return ejecutar_string(spark, sql)
+    return ejecutar(spark, sql, "eventos_positivos_mas_cubiertos_por_pais.json")
