@@ -1,17 +1,37 @@
+import time
 import json
 from pathlib import Path
 from pymongo import MongoClient
 
 PROCESSED_JSONS_DIR_PATH: Path = Path("processed_jsons")
-CLIENT: MongoClient = MongoClient("mongodb://localhost:27017/")
-DATABASE = CLIENT["local"]
 
 def uploadData() -> None:
-    for jsonFile in PROCESSED_JSONS_DIR_PATH.iterdir():
-        if jsonFile.exists() and jsonFile.is_file():
-            with open(str(jsonFile.absolute()) ,'r', encoding = "utf-8") as jsonFile:
+    client: MongoClient = MongoClient("mongodb://localhost:27017/")
+    database = client["local"]
+    for jsonFilePath in PROCESSED_JSONS_DIR_PATH.iterdir():
+        if jsonFilePath.exists() and jsonFilePath.is_file():
+            with open(str(jsonFilePath.absolute()) ,'r', encoding = "utf-8") as jsonFile:
                 rawData: str = jsonFile.read()
                 parsedData = json.loads(rawData)
                 if parsedData != []:
-                    collection = DATABASE[jsonFile.name[:-5]]
+                    collection = database[jsonFilePath.name[:-5]]
                     collection.insert_many(parsedData)
+
+def clearData() -> None:
+    client: MongoClient = MongoClient("mongodb://localhost:27017/")
+    database = client["local"]
+    for jsonFilePath in PROCESSED_JSONS_DIR_PATH.iterdir():
+        if jsonFilePath.exists() and jsonFilePath.is_file():
+            collection = database[jsonFilePath.name[:-5]]
+            collection.delete_many({})
+
+def main() -> None:
+    while True:
+        for _ in range(47):
+            time.sleep(2 * 60)
+            uploadData()
+            time.sleep(15 * 60)
+        clearData()
+
+if __name__ == "__main__":
+    main()

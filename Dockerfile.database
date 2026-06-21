@@ -1,4 +1,7 @@
 FROM mongo:latest
 USER root
+RUN apt update
+RUN apt install python3 python3-pymongo -y
 WORKDIR /app
+COPY database.py .
 EXPOSE 27017

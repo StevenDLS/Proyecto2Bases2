@@ -1,114 +1,5 @@
 import json
-from pyspark.sql import functions as F
-from pyspark.sql.types import StructType
 from datetime import date as _date, datetime as _datetime
-
-# ============================================================
-# 0. CARGA DE PARQUETS
-# ============================================================
-
-EVENTS_PARQUET = "parquets/events"
-MENTIONS_PARQUET = "parquets/mentions"
-GKG_PARQUET = "parquets/gkg"
-
-
-def normalizar_numberlong(df):
-    """
-    Convierte columnas tipo {"$numberLong": "..."} a long.
-    Sirve si el JSON fue convertido a parquet conservando estructuras Mongo-like.
-    """
-    for field in df.schema.fields:
-        if isinstance(field.dataType, StructType) and "$numberLong" in field.dataType.fieldNames():
-            df = df.withColumn(
-                field.name,
-                F.col(f"`{field.name}`.`$numberLong`").cast("long")
-            )
-    return df
-
-
-def region_from_geo(country, lat, lon):
-    """
-    Región aproximada usando primero código de país y luego lat/lon como fallback.
-    """
-    region_by_code = {
-        "US": "Norteamérica", "CA": "Norteamérica", "GL": "Norteamérica",
-
-        "MX": "Latinoamérica y Caribe", "CR": "Latinoamérica y Caribe",
-        "CS": "Latinoamérica y Caribe", "GT": "Latinoamérica y Caribe",
-        "HO": "Latinoamérica y Caribe", "HN": "Latinoamérica y Caribe",
-        "ES": "Latinoamérica y Caribe", "SV": "Latinoamérica y Caribe",
-        "NU": "Latinoamérica y Caribe", "NI": "Latinoamérica y Caribe",
-        "PM": "Latinoamérica y Caribe", "PA": "Latinoamérica y Caribe",
-        "CU": "Latinoamérica y Caribe", "DR": "Latinoamérica y Caribe",
-        "HA": "Latinoamérica y Caribe", "JM": "Latinoamérica y Caribe",
-        "RQ": "Latinoamérica y Caribe", "PR": "Latinoamérica y Caribe",
-
-        "BR": "Sudamérica", "AR": "Sudamérica", "CO": "Sudamérica",
-        "VE": "Sudamérica", "PE": "Sudamérica", "EC": "Sudamérica",
-        "CI": "Sudamérica", "CHL": "Sudamérica", "UY": "Sudamérica",
-        "BL": "Sudamérica", "BO": "Sudamérica", "GY": "Sudamérica",
-
-        "UK": "Europa", "GB": "Europa", "FR": "Europa", "GM": "Europa",
-        "DE": "Europa", "SP": "Europa", "ES2": "Europa", "IT": "Europa",
-        "RS": "Europa", "RU": "Europa", "UP": "Europa", "UA": "Europa",
-        "PL": "Europa", "PO": "Europa", "NL": "Europa", "BE": "Europa",
-        "SZ": "Europa", "SW": "Europa", "NO": "Europa", "FI": "Europa",
-
-        "CH": "Asia", "CN": "Asia", "JA": "Asia", "JP": "Asia",
-        "KS": "Asia", "KR": "Asia", "KN": "Asia", "IN": "Asia",
-        "PK": "Asia", "BG": "Asia", "TH": "Asia", "VM": "Asia",
-        "RP": "Asia", "PH": "Asia", "ID": "Asia", "MY": "Asia",
-        "IR": "Asia", "IZ": "Asia", "IQ": "Asia", "IS": "Asia",
-        "SA": "Asia", "TU": "Asia", "AF": "Asia",
-
-        "EG": "África", "NI": "África", "NG": "África", "SF": "África",
-        "ZA": "África", "KE": "África", "ET": "África", "SU": "África",
-        "SD": "África", "MO": "África", "MA": "África", "AG": "África",
-        "DZ": "África", "LY": "África", "TZ": "África",
-
-        "AS": "Oceanía", "AU": "Oceanía", "NZ": "Oceanía", "PP": "Oceanía",
-        "FJ": "Oceanía"
-    }
-
-    if country is not None:
-        c = str(country).upper().strip()
-        if c in region_by_code:
-            return region_by_code[c]
-
-    try:
-        lat = float(lat)
-        lon = float(lon)
-    except Exception:
-        return "Sin región"
-
-    if -170 <= lon <= -50 and lat >= 32:
-        return "Norteamérica"
-    if -120 <= lon <= -30 and lat < 32:
-        return "Latinoamérica y Caribe"
-    if -90 <= lon <= -30 and lat < 15:
-        return "Sudamérica"
-    if -25 <= lon <= 60 and 35 <= lat <= 75:
-        return "Europa"
-    if -20 <= lon <= 55 and -35 <= lat <= 38:
-        return "África"
-    if 25 <= lon <= 180 and -10 <= lat <= 80:
-        return "Asia"
-    if 110 <= lon <= 180 and -50 <= lat <= 0:
-        return "Oceanía"
-
-    return "Sin región"
-
-def cargar_parquets(spark):
-    spark.udf.register("region_from_geo", region_from_geo, "string")
-    
-    events = normalizar_numberlong(spark.read.parquet(EVENTS_PARQUET))
-    mentions = normalizar_numberlong(spark.read.parquet(MENTIONS_PARQUET))
-    gkg = normalizar_numberlong(spark.read.parquet(GKG_PARQUET))
-
-    events.createOrReplaceTempView("events")
-    mentions.createOrReplaceTempView("mentions")
-    gkg.createOrReplaceTempView("gkg")
-
 
 def _valor_json(valor):
     if isinstance(valor, _datetime):
@@ -116,7 +7,6 @@ def _valor_json(valor):
     if isinstance(valor, _date):
         return valor.strftime("%Y-%m-%d")
     return valor
-
 
 def ejecutar(spark, sql, fileName):
     filas = spark.sql(sql).collect()

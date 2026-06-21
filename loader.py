@@ -52,7 +52,7 @@ def main():
         getGdeltData(gd2, dateString)
 
         print("Esperando 15 minutos...")
-        time.sleep(5 * 60)
+        time.sleep(15 * 60)
 
 if __name__ == "__main__":
     freeze_support()
