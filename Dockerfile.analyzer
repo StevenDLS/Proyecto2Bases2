@@ -3,7 +3,8 @@ USER root
 WORKDIR /app
 EXPOSE 4040
 EXPOSE 15002
-COPY ./analyzer/ .
+COPY analyzer.py .
+COPY queries.py .
 RUN mkdir parquets
 RUN mkdir parquets/events
 RUN mkdir parquets/mentions

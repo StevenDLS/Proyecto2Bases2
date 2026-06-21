@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, timezone
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 JSONS_DIR_PATH: str = os.path.join(BASE_PATH, "raw_jsons")
-JSON_EXTENSION: str = ".json"
 
 def getDatetimeIntervalFromNow() -> datetime:
     now: datetime = datetime.now(timezone.utc) - timedelta(hours = 6)
@@ -23,11 +22,8 @@ def getDatetimeIntervalFromNow() -> datetime:
     return interval
 
 
-def getGdeltData(gd2, dateString: str):
-    data: list[dict] = []
-
+def getGdeltData(gd2, dateString: str) -> None:
     tables: list[str] = ["events", "mentions", "gkg"]
-
     for table in tables:
         try:
             results = gd2.Search(
@@ -36,15 +32,16 @@ def getGdeltData(gd2, dateString: str):
                 output = "json"
             )
 
-            with open(os.path.join(JSONS_DIR_PATH, table + JSON_EXTENSION), 'w') as file:
+            now: datetime = datetime.now(timezone.utc) - timedelta(hours = 6)
+            jsonFilePath: str = os.path.join(JSONS_DIR_PATH, table + "_" + now.strftime("%Y%m%d%H%M%S") + ".json")
+
+            with open(jsonFilePath, 'w') as jsonFile:
                 parsedData = json.loads(results)
                 formattedJSON = json.dumps(parsedData, indent = 4)
-                file.write(formattedJSON)
+                jsonFile.write(formattedJSON)
 
         except Exception as e:
             print(f"Error consultando {table}: {e}")
-
-    return data
 
 def main():
     warnings.filterwarnings("ignore")
@@ -52,15 +49,23 @@ def main():
     gd2 = gdelt(version=2)
 
     while True:
-        interval = getDatetimeIntervalFromNow()
-        dateString = interval.strftime("%Y %b %d %H:%M")
+        for _ in range(4):
+            interval = getDatetimeIntervalFromNow()
+            dateString = interval.strftime("%Y %b %d %H:%M")
 
-        print(f"\nConsultando GDELT para: {dateString}")
+            print(f"\nConsultando GDELT para: {dateString}")
 
-        getGdeltData(gd2, dateString)
+            getGdeltData(gd2, dateString)
 
-        print("Esperando 15 minutos...")
-        time.sleep(15 * 60)
+            print("Esperando 15 minutos...")
+            time.sleep(10)
+
+        for jsonFile in os.listdir(JSONS_DIR_PATH):
+            jsonFilePath = os.path.join(JSONS_DIR_PATH, jsonFile)
+            if os.path.isfile(jsonFile):
+                os.remove(jsonFilePath)
+
+    
 
 if __name__ == "__main__":
     freeze_support()

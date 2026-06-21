@@ -1,5 +1,7 @@
+import json
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType
+from datetime import date as _date, datetime as _datetime
 
 # ============================================================
 # 0. CARGA DE PARQUETS
@@ -108,8 +110,23 @@ def cargar_parquets(spark):
     gkg.createOrReplaceTempView("gkg")
 
 
-def ejecutar(spark, sql):
-    return [r.asDict() for r in spark.sql(sql).collect()]
+def _valor_json(valor):
+    if isinstance(valor, _datetime):
+        return valor.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(valor, _date):
+        return valor.strftime("%Y-%m-%d")
+    return valor
+
+
+def ejecutar(spark, sql, fileName):
+    filas = spark.sql(sql).collect()
+    dataArray = [
+        {k: _valor_json(v) for k, v in r.asDict(recursive=True).items()}
+        for r in filas
+    ]
+    with open("processed_jsons/" + fileName, 'w') as file:
+        formattedJSON = json.dumps(dataArray, indent = 4)
+        file.write(formattedJSON)
 
 # ============================================================
 # 1. MAPA DE CALOR DE INTENSIDAD DE CONFLICTOS POR PAÍS POR DÍA
@@ -118,7 +135,7 @@ def ejecutar(spark, sql):
 def mapa_calor_intensidad_conflictos(spark):
     sql = """
         SELECT
-            to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd') AS fecha,
+            date_format(to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd'), 'yyyy-MM-dd') AS fecha,
             ActionGeo_CountryCode AS pais,
             region_from_geo(
                 ActionGeo_CountryCode,
@@ -136,11 +153,11 @@ def mapa_calor_intensidad_conflictos(spark):
           AND GoldsteinScale IS NOT NULL
           AND CAST(QuadClass AS INT) IN (3, 4)
         GROUP BY
-            to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd'),
+            date_format(to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd'), 'yyyy-MM-dd'),
             ActionGeo_CountryCode
         ORDER BY fecha DESC, intensidad_total_goldstein DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "mapa_calor_intensidad_conflictos.json")
 
 
 # ============================================================Detallito
@@ -151,7 +168,7 @@ def top_10_paises_eventos_por_dia(spark):
     sql = """
         WITH diarios AS (
             SELECT
-                to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd') AS fecha,
+                date_format(to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd'), 'yyyy-MM-dd') AS fecha,
                 ActionGeo_CountryCode AS pais,
                 COUNT(DISTINCT GLOBALEVENTID) AS total_eventos,
                 SUM(CAST(NumMentions AS INT)) AS total_menciones,
@@ -177,7 +194,7 @@ def top_10_paises_eventos_por_dia(spark):
         WHERE ranking <= 10
         ORDER BY fecha DESC, ranking
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "top_10_paises_eventos_por_dia.json")
 
 
 # ============================================================
@@ -196,7 +213,7 @@ def correlacion_avg_tone_fuentes(spark):
         WHERE AvgTone IS NOT NULL
           AND NumSources IS NOT NULL
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "correlacion_avg_tone_fuentes.json")
 
 
 # ============================================================
@@ -246,7 +263,7 @@ def distribucion_cameo_por_region(spark):
         FROM conteo
         ORDER BY region, total_eventos DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "distribucion_cameo_por_region.json")
 
 
 # ============================================================
@@ -295,7 +312,7 @@ def matriz_interaccion_actores(spark):
         GROUP BY actor1_categoria, actor2_categoria
         ORDER BY frecuencia DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "matriz_interaccion_actores.json")
 
 
 # ============================================================
@@ -337,7 +354,7 @@ def paises_mayor_cobertura_mediatica(spark):
         HAVING total_eventos >= 5
         ORDER BY razon_menciones_por_evento DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "paises_mayor_cobertura_mediatica.json")
 
 
 # ============================================================
@@ -348,7 +365,7 @@ def tendencia_sentimiento_pais(spark):
     sql = """
         WITH diarios AS (
             SELECT
-                to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd') AS fecha,
+                date_format(to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd'), 'yyyy-MM-dd') AS fecha,
                 ActionGeo_CountryCode AS pais,
                 COUNT(DISTINCT GLOBALEVENTID) AS total_eventos,
                 ROUND(AVG(CAST(AvgTone AS DOUBLE)), 2) AS tono_promedio_dia
@@ -376,7 +393,7 @@ def tendencia_sentimiento_pais(spark):
         FROM diarios
         ORDER BY pais, fecha
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "tendencia_sentimiento_pais.json")
 
 
 # ============================================================
@@ -411,7 +428,7 @@ def conflictos_pares_paises(spark):
         ORDER BY total_conflictos DESC
         LIMIT 50
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "conflictos_pares_paises.json")
 
 
 # ============================================================ VOID
@@ -489,11 +506,11 @@ def escalada_eventos_menciones_24h(spark, min_menciones_24h=10):
         )
         SELECT
             a.GLOBALEVENTID,
-            to_date(CAST(e.SQLDATE AS STRING), 'yyyyMMdd') AS fecha_evento,
+            date_format(to_date(CAST(e.SQLDATE AS STRING), 'yyyyMMdd'), 'yyyy-MM-dd') AS fecha_evento,
             e.ActionGeo_CountryCode AS pais,
             e.EventCode,
             e.CAMEOCodeDescription,
-            a.hora,
+            date_format(a.hora, 'yyyy-MM-dd HH:mm:ss') AS hora,
             a.menciones_hora,
             a.menciones_ultimas_24h,
             COALESCE(a.menciones_24h_previas, 0) AS menciones_24h_previas,
@@ -508,7 +525,7 @@ def escalada_eventos_menciones_24h(spark, min_menciones_24h=10):
         ORDER BY aceleracion_menciones DESC
         LIMIT 50
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "escalada_eventos_menciones_24h.json")
 
 
 # ============================================================1 row only
@@ -549,7 +566,7 @@ def conflictos_religion_region(spark):
         GROUP BY region, religion_actor1, religion_actor2
         ORDER BY total_conflictos DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "conflictos_religion_region.json")
 
 
 # ============================================================
@@ -675,7 +692,7 @@ def temas_gkg_continente_anio(spark):
         WHERE ranking <= 20
         ORDER BY anio DESC, continente, ranking
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "temas_gkg_continente_anio.json")
 
 
 # ============================================================
@@ -686,7 +703,7 @@ def organizaciones_mas_mencionadas_por_dia(spark):
     sql = """
         WITH orgs AS (
             SELECT
-                to_date(SUBSTR(CAST(`DATE` AS STRING), 1, 8), 'yyyyMMdd') AS fecha,
+                date_format(to_date(SUBSTR(CAST(`DATE` AS STRING), 1, 8), 'yyyyMMdd'), 'yyyy-MM-dd') AS fecha,
                 LOWER(TRIM(org_raw)) AS organizacion,
                 GKGRECORDID
             FROM gkg
@@ -716,7 +733,7 @@ def organizaciones_mas_mencionadas_por_dia(spark):
         WHERE ranking <= 20
         ORDER BY fecha DESC, ranking
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "organizaciones_mas_mencionadas_por_dia.json")
 
 
 # ============================================================
@@ -728,7 +745,7 @@ def analisis_rezago_tono_conflicto(spark):
     sql = """
         WITH diario AS (
             SELECT
-                to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd') AS fecha,
+                date_format(to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd'), 'yyyy-MM-dd') AS fecha,
                 ActionGeo_CountryCode AS pais,
                 ROUND(AVG(CAST(AvgTone AS DOUBLE)), 4) AS tono_promedio_hoy,
                 SUM(
@@ -768,7 +785,7 @@ def analisis_rezago_tono_conflicto(spark):
         HAVING dias_analizados >= 3
         ORDER BY ABS(correlacion_tono_hoy_conflicto_manana) DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "analisis_rezago_tono_conflicto.json")
 
 
 # ============================================================
@@ -817,7 +834,7 @@ def grafo_diplomacia_vs_conflicto(spark):
         ORDER BY total_interacciones DESC
         LIMIT 100
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "grafo_diplomacia_vs_conflicto.json")
 
 
 # ============================================================
@@ -867,7 +884,7 @@ def indice_diversidad_fuentes_pais(spark):
         GROUP BY sc.pais, t.medios_distintos, t.total_menciones
         ORDER BY indice_shannon_fuentes DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "indice_diversidad_fuentes_pais.json")
 
 
 # ============================================================ 1 row
@@ -907,7 +924,7 @@ def frecuencia_conflictos_por_etnia(spark):
         GROUP BY etnia
         ORDER BY apariciones DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "frecuencia_conflictos_por_etnia.json")
 
 
 # ============================================================ VOID
@@ -973,8 +990,8 @@ def noticias_ultima_hora(spark, min_menciones=100):
         )
         SELECT
             ph.GLOBALEVENTID,
-            f.primera_mencion,
-            to_date(CAST(e.SQLDATE AS STRING), 'yyyyMMdd') AS fecha_evento,
+            date_format(f.primera_mencion, 'yyyy-MM-dd HH:mm:ss') AS primera_mencion,
+            date_format(to_date(CAST(e.SQLDATE AS STRING), 'yyyyMMdd'), 'yyyy-MM-dd') AS fecha_evento,
             e.ActionGeo_CountryCode AS pais,
             e.EventCode,
             e.CAMEOCodeDescription,
@@ -989,4 +1006,4 @@ def noticias_ultima_hora(spark, min_menciones=100):
         WHERE ph.menciones_primera_hora >= {min_menciones}
         ORDER BY ph.menciones_primera_hora DESC
     """
-    return ejecutar(spark, sql)
+    return ejecutar(spark, sql, "noticias_ultima_hora.json")
