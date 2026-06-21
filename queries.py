@@ -1007,3 +1007,202 @@ def noticias_ultima_hora(spark, min_menciones=100):
         ORDER BY ph.menciones_primera_hora DESC
     """
     return ejecutar(spark, sql, "noticias_ultima_hora.json")
+
+# ============================================================
+# HELPER PARA ASEGURAR SALIDA JSON-FRIENDLY COMO STRING
+# ============================================================
+
+def ejecutar_string(spark, sql):
+    return [
+        {k: "" if v is None else str(v) for k, v in r.asDict().items()}
+        for r in spark.sql(sql).collect()
+    ]
+
+
+# ============================================================
+# IDEA 1:
+# ACTORES MÁS ASOCIADOS A EVENTOS NEGATIVOS
+# ============================================================
+
+def actores_mas_asociados_eventos_negativos(spark):
+    sql = """
+        WITH actores AS (
+            SELECT
+                'Actor1' AS rol_actor,
+                Actor1Name AS nombre_actor,
+                Actor1Code AS codigo_actor,
+                Actor1CountryCode AS pais_actor,
+                Actor1Type1Code AS tipo_actor,
+                GLOBALEVENTID,
+                CAST(AvgTone AS DOUBLE) AS avg_tone,
+                CAST(GoldsteinScale AS DOUBLE) AS goldstein,
+                CAST(QuadClass AS INT) AS quad_class,
+                EventCode,
+                CAMEOCodeDescription
+            FROM events
+            WHERE Actor1Name IS NOT NULL
+              AND TRIM(Actor1Name) <> ''
+
+            UNION ALL
+
+            SELECT
+                'Actor2' AS rol_actor,
+                Actor2Name AS nombre_actor,
+                Actor2Code AS codigo_actor,
+                Actor2CountryCode AS pais_actor,
+                Actor2Type1Code AS tipo_actor,
+                GLOBALEVENTID,
+                CAST(AvgTone AS DOUBLE) AS avg_tone,
+                CAST(GoldsteinScale AS DOUBLE) AS goldstein,
+                CAST(QuadClass AS INT) AS quad_class,
+                EventCode,
+                CAMEOCodeDescription
+            FROM events
+            WHERE Actor2Name IS NOT NULL
+              AND TRIM(Actor2Name) <> ''
+        ),
+        negativos AS (
+            SELECT *
+            FROM actores
+            WHERE avg_tone < 0
+               OR goldstein < 0
+               OR quad_class IN (3, 4)
+        ),
+        agregados AS (
+            SELECT
+                nombre_actor,
+                COALESCE(codigo_actor, 'SIN_CODIGO') AS codigo_actor,
+                COALESCE(pais_actor, 'SIN_PAIS') AS pais_actor,
+                COALESCE(tipo_actor, 'SIN_TIPO') AS tipo_actor,
+                rol_actor,
+                COUNT(*) AS apariciones,
+                COUNT(DISTINCT GLOBALEVENTID) AS eventos_distintos,
+                ROUND(AVG(avg_tone), 2) AS tono_promedio,
+                ROUND(AVG(goldstein), 2) AS goldstein_promedio,
+                SUM(CASE WHEN quad_class IN (3, 4) THEN 1 ELSE 0 END) AS eventos_conflicto,
+                ROUND(
+                    100.0 * SUM(CASE WHEN quad_class IN (3, 4) THEN 1 ELSE 0 END) / COUNT(*),
+                    2
+                ) AS porcentaje_conflicto
+            FROM negativos
+            GROUP BY
+                nombre_actor,
+                COALESCE(codigo_actor, 'SIN_CODIGO'),
+                COALESCE(pais_actor, 'SIN_PAIS'),
+                COALESCE(tipo_actor, 'SIN_TIPO'),
+                rol_actor
+        ),
+        ordenado AS (
+            SELECT *
+            FROM agregados
+            ORDER BY apariciones DESC, eventos_distintos DESC
+            LIMIT 100
+        )
+        SELECT
+            CAST(nombre_actor AS STRING) AS nombre_actor,
+            CAST(codigo_actor AS STRING) AS codigo_actor,
+            CAST(pais_actor AS STRING) AS pais_actor,
+            CAST(tipo_actor AS STRING) AS tipo_actor,
+            CAST(rol_actor AS STRING) AS rol_actor,
+            CAST(apariciones AS STRING) AS apariciones,
+            CAST(eventos_distintos AS STRING) AS eventos_distintos,
+            CAST(tono_promedio AS STRING) AS tono_promedio,
+            CAST(goldstein_promedio AS STRING) AS goldstein_promedio,
+            CAST(eventos_conflicto AS STRING) AS eventos_conflicto,
+            CAST(porcentaje_conflicto AS STRING) AS porcentaje_conflicto
+        FROM ordenado
+    """
+    return ejecutar_string(spark, sql)
+
+
+# ============================================================
+# IDEA 2:
+# EVENTOS POSITIVOS MÁS CUBIERTOS POR PAÍS
+# ============================================================
+
+def eventos_positivos_mas_cubiertos_por_pais(spark):
+    sql = """
+        WITH eventos_positivos AS (
+            SELECT
+                GLOBALEVENTID,
+                ActionGeo_CountryCode AS pais,
+                ActionGeo_FullName AS ubicacion,
+                EventCode,
+                EventBaseCode,
+                EventRootCode,
+                CAMEOCodeDescription,
+                CAST(AvgTone AS DOUBLE) AS avg_tone,
+                CAST(GoldsteinScale AS DOUBLE) AS goldstein,
+                CAST(NumMentions AS INT) AS num_mentions_event,
+                CAST(NumSources AS INT) AS num_sources_event,
+                CAST(NumArticles AS INT) AS num_articles_event,
+                SOURCEURL,
+                to_date(CAST(SQLDATE AS STRING), 'yyyyMMdd') AS fecha_evento
+            FROM events
+            WHERE ActionGeo_CountryCode IS NOT NULL
+              AND GLOBALEVENTID IS NOT NULL
+              AND GoldsteinScale IS NOT NULL
+              AND CAST(GoldsteinScale AS DOUBLE) > 0
+              AND CAST(QuadClass AS INT) IN (1, 2)
+        ),
+        cobertura_mentions AS (
+            SELECT
+                GLOBALEVENTID,
+                COUNT(*) AS total_menciones_reales,
+                COUNT(DISTINCT MentionSourceName) AS fuentes_distintas_reales,
+                ROUND(AVG(CAST(MentionDocTone AS DOUBLE)), 2) AS tono_promedio_documentos
+            FROM mentions
+            WHERE GLOBALEVENTID IS NOT NULL
+            GROUP BY GLOBALEVENTID
+        ),
+        joined AS (
+            SELECT
+                e.*,
+                COALESCE(m.total_menciones_reales, 0) AS total_menciones_reales,
+                COALESCE(m.fuentes_distintas_reales, 0) AS fuentes_distintas_reales,
+                COALESCE(m.tono_promedio_documentos, 0) AS tono_promedio_documentos
+            FROM eventos_positivos e
+            LEFT JOIN cobertura_mentions m
+                ON e.GLOBALEVENTID = m.GLOBALEVENTID
+        ),
+        ranked AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY pais
+                    ORDER BY
+                        total_menciones_reales DESC,
+                        fuentes_distintas_reales DESC,
+                        num_mentions_event DESC,
+                        goldstein DESC
+                ) AS ranking_pais
+            FROM joined
+        ),
+        filtrado AS (
+            SELECT *
+            FROM ranked
+            WHERE ranking_pais <= 10
+            ORDER BY pais, ranking_pais
+        )
+        SELECT
+            CAST(ranking_pais AS STRING) AS ranking_pais,
+            CAST(GLOBALEVENTID AS STRING) AS global_event_id,
+            date_format(fecha_evento, 'yyyy-MM-dd') AS fecha_evento,
+            CAST(pais AS STRING) AS pais,
+            CAST(COALESCE(ubicacion, 'SIN_UBICACION') AS STRING) AS ubicacion,
+            CAST(EventCode AS STRING) AS event_code,
+            CAST(EventBaseCode AS STRING) AS event_base_code,
+            CAST(EventRootCode AS STRING) AS event_root_code,
+            CAST(COALESCE(CAMEOCodeDescription, 'SIN_DESCRIPCION') AS STRING) AS descripcion_cameo,
+            CAST(ROUND(avg_tone, 2) AS STRING) AS tono_evento,
+            CAST(ROUND(goldstein, 2) AS STRING) AS goldstein,
+            CAST(COALESCE(num_mentions_event, 0) AS STRING) AS num_mentions_event,
+            CAST(COALESCE(num_sources_event, 0) AS STRING) AS num_sources_event,
+            CAST(COALESCE(num_articles_event, 0) AS STRING) AS num_articles_event,
+            CAST(total_menciones_reales AS STRING) AS total_menciones_reales,
+            CAST(fuentes_distintas_reales AS STRING) AS fuentes_distintas_reales,
+            CAST(tono_promedio_documentos AS STRING) AS tono_promedio_documentos,
+            CAST(COALESCE(SOURCEURL, 'SIN_URL') AS STRING) AS source_url
+        FROM filtrado
+    """
+    return ejecutar_string(spark, sql)
