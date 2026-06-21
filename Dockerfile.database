@@ -2,6 +2,3 @@ FROM mongo:latest
 USER root
 WORKDIR /app
 EXPOSE 27017
-COPY database.py .
-RUN apt update
-RUN apt install python3 python3-pymongo -y
