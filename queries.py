@@ -240,28 +240,52 @@ def distribucion_cameo_por_region(spark):
         ),
         conteo AS (
             SELECT
+                COALESCE(region, 'SIN_REGION') AS region,
+                COALESCE(EventRootCode, 'SIN_ROOT_CODE') AS EventRootCode,
+                COALESCE(EventBaseCode, 'SIN_BASE_CODE') AS EventBaseCode,
+                COALESCE(EventCode, 'SIN_EVENT_CODE') AS EventCode,
+                descripcion_cameo,
+                COUNT(DISTINCT GLOBALEVENTID) AS total_eventos
+            FROM base
+            GROUP BY
+                COALESCE(region, 'SIN_REGION'),
+                COALESCE(EventRootCode, 'SIN_ROOT_CODE'),
+                COALESCE(EventBaseCode, 'SIN_BASE_CODE'),
+                COALESCE(EventCode, 'SIN_EVENT_CODE'),
+                descripcion_cameo
+        ),
+        calculado AS (
+            SELECT
                 region,
                 EventRootCode,
                 EventBaseCode,
                 EventCode,
                 descripcion_cameo,
-                COUNT(DISTINCT GLOBALEVENTID) AS total_eventos
-            FROM base
-            GROUP BY region, EventRootCode, EventBaseCode, EventCode, descripcion_cameo
+                total_eventos,
+                ROUND(
+                    100.0 * total_eventos / SUM(total_eventos) OVER (PARTITION BY region),
+                    2
+                ) AS porcentaje_region
+            FROM conteo
+        ),
+        ordenado AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    ORDER BY region ASC, total_eventos DESC
+                ) AS orden_salida
+            FROM calculado
         )
         SELECT
-            region,
-            EventRootCode,
-            EventBaseCode,
-            EventCode,
-            descripcion_cameo,
-            total_eventos,
-            ROUND(
-                100.0 * total_eventos / SUM(total_eventos) OVER (PARTITION BY region),
-                2
-            ) AS porcentaje_region
-        FROM conteo
-        ORDER BY region, total_eventos DESC
+            CAST(region AS STRING) AS region,
+            CAST(EventRootCode AS STRING) AS EventRootCode,
+            CAST(EventBaseCode AS STRING) AS EventBaseCode,
+            CAST(EventCode AS STRING) AS EventCode,
+            CAST(descripcion_cameo AS STRING) AS descripcion_cameo,
+            CAST(total_eventos AS STRING) AS total_eventos,
+            CAST(porcentaje_region AS STRING) AS porcentaje_region
+        FROM ordenado
+        ORDER BY orden_salida
     """
     return ejecutar(spark, sql, "distribucion_cameo_por_region.json")
 
