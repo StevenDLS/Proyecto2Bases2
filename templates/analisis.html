@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block contenido %}
+<h2>{{ titulo }}</h2>
+
+{% if barras %}
+<h3>Grafico</h3>
+{% for fila in barras %}
+<div class="barra-fila">
+    <span class="barra-etiqueta">{{ fila.etiqueta }}</span>
+    <span class="barra" style="width: {{ fila.porcentaje }}%;"></span>
+    {{ fila.valor }}
+</div>
+{% endfor %}
+{% endif %}
+
+<h3>Tabla</h3>
+{% if documentos %}
+<table>
+    <tr>
+        {% for columna in columnas %}
+        <th>{{ columna }}</th>
+        {% endfor %}
+    </tr>
+    {% for documento in documentos %}
+    <tr>
+        {% for columna in columnas %}
+        <td>{{ documento.get(columna, "") }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>esta coleccion no tiene datos por ahora :(</p>
+{% endif %}
+{% endblock %}

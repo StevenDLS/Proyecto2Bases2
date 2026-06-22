@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block titulo %}Inicio - Visualizador GDELT{% endblock %}
+
+{% block contenido %}
+<h2>Analisis disponibles</h2>
+{% if analisis %}
+<ul>
+    {% for item in analisis %}
+    <li><a href="/analisis/{{ item.nombre }}">{{ item.titulo }}</a></li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>todavia no hay datos en la base, corra el pipeline primero :/</p>
+{% endif %}
+{% endblock %}

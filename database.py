@@ -28,9 +28,12 @@ def clearData() -> None:
 def main() -> None:
     while True:
         for _ in range(47):
+            print("Esperando 2 minutos antes de guardar los datos a la base de datos")
             time.sleep(2 * 60)
             uploadData()
+            print("Esperando 15 minutos para la siguiente consulta a GDELT")
             time.sleep(15 * 60)
+        print("Limpiando base de datos")
         clearData()
 
 if __name__ == "__main__":

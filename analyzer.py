@@ -130,6 +130,7 @@ def createSparkSession() -> SparkSession:
         .config("spark.driver.memory", "4g") \
         .config("spark.executor.memory", "4g") \
         .config("spark.driver.maxResultSize", "4g") \
+        .config("spark.sql.ansi.enabled", "false") \
         .getOrCreate()
     
     return sparkSession
@@ -170,12 +171,13 @@ def main():
     sparkSession.udf.register("region_from_geo", region_from_geo, "string")
 
     while True:
+        print("Esperando 1 minuto para que se consulta a GDELT")
         time.sleep(60)
         print("Creando tablas")
         createTables(sparkSession)
-        print("Creando consultas")
+        print("Obteniendo consultas")
         createQueries(sparkSession)
-        print("Esperando...")
+        print("Esperando 15 minutos para la siguiente consulta a GDELT")
         time.sleep(15 * 60)
 
 if __name__ == "__main__":
