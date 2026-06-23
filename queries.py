@@ -355,11 +355,7 @@ def escalada_eventos_menciones_24h(spark, min_menciones_24h=1):
             SELECT
                 GLOBALEVENTID,
                 to_timestamp(
-                    substring(
-                        regexp_replace(CAST(MentionTimeDate AS STRING), '\\\\.0$', ''),
-                        1,
-                        14
-                    ),
+                    lpad(CAST(CAST(MentionTimeDate AS DECIMAL(14,0)) AS STRING), 14, '0'),
                     'yyyyMMddHHmmss'
                 ) AS mention_ts
             FROM mentions
