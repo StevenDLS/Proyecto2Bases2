@@ -47,8 +47,8 @@ def main() -> None:
     while True:
         try:
             for _ in range(47):
-                print("Esperando 1 minutos antes de guardar los datos a la base de datos")
-                time.sleep(1 * 60)
+                print("Esperando 2 minutos antes de guardar los datos a la base de datos")
+                time.sleep(2 * 60)
                 print("Subiendo datos")
                 uploadData()
                 print("Esperando 15 minutos para la siguiente consulta a GDELT")

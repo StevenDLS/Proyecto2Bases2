@@ -1,7 +1,9 @@
 services:
   mongodb:
-    image: mongo:latest
     container_name: mongodb
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
     ports:
       - 27017:27017
 
@@ -9,7 +11,7 @@ services:
     container_name: gdeltloader
     build:
       context: .
-      dockerfile: Dockerfile.loader
+      dockerfile: Dockerfile.gdeltloader
     volumes:
       - raw_data:/app/raw_jsons
 
@@ -37,7 +39,7 @@ services:
     container_name: mongodbloader
     build:
       context: .
-      dockerfile: Dockerfile.database
+      dockerfile: Dockerfile.mongodbloader
     volumes:
       - processed_data:/app/processed_jsons
 

@@ -4,4 +4,5 @@ EXPOSE 27017
 ENV PYTHONUNBUFFERED=1
 RUN pip install pymongo
 WORKDIR /app
-COPY database.py .
+COPY mongodbloader.py .
+CMD ["python", "-u", "mongodbloader.py"]
