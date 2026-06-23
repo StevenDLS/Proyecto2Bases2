@@ -349,7 +349,7 @@ def conflictos_pares_paises(spark):
 # 9. DETECCIÓN DE ESCALADA DE EVENTOS EN 24 HORAS
 # ============================================================
 
-def escalada_eventos_menciones_24h(spark, min_menciones_24h=10):
+def escalada_eventos_menciones_24h(spark, min_menciones_24h=1):
     sql = f"""
         WITH mention_times AS (
             SELECT
