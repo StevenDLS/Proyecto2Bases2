@@ -39,6 +39,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    ports:
+      - 5000:5000
+    depends_on:
+      - database
 volumes:
   raw_data:
   processed_data:
