@@ -3,8 +3,8 @@ USER root
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1
 RUN pip install flask pymongo
-COPY app.py .
+COPY frontend.py .
 COPY templates ./templates
 COPY static ./static
 EXPOSE 5000
-CMD ["python", "-u", "app.py"]
+CMD ["python", "-u", "frontend.py"]

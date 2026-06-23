@@ -172,15 +172,18 @@ def main():
     sparkSession = createSparkSession()
     sparkSession.udf.register("region_from_geo", region_from_geo, "string")
 
-    while True:
-        print("Esperando 1 minuto antes de crear las tablas")
-        time.sleep(60)
-        print("Creando tablas")
-        createTables(sparkSession)
-        print("Obteniendo consultas")
-        createQueries(sparkSession)
-        print("Esperando 15 minutos para la siguiente consulta a GDELT")
-        time.sleep(15 * 60)
+    try:
+        while True:
+            print("Esperando 1 minuto antes de crear las tablas")
+            time.sleep(60)
+            print("Creando tablas")
+            createTables(sparkSession)
+            print("Obteniendo consultas")
+            createQueries(sparkSession)
+            print("Esperando 15 minutos para la siguiente consulta a GDELT")
+            time.sleep(15 * 60)
+    except Exception:
+        print("Error: Ocurrió un problema con el analyzer")
 
 if __name__ == "__main__":
     freeze_support()

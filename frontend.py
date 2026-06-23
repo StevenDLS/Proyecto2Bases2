@@ -4,7 +4,7 @@ from pymongo import MongoClient
 
 # el host es el nombre del servicio de compose, no localhost, porque
 # corremos dentro de la red de docker :)
-MONGO_URI = "mongodb://database:27017/"
+MONGO_URI = "mongodb://mongodb:27017/"
 DATABASE_NAME = "local"
 
 # tope de filas que mandamos al navegador para que la tabla no se vuelva

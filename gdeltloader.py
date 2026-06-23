@@ -44,15 +44,19 @@ def main():
     gd2 = gdelt(version = 2)
 
     while True:
-        interval = getDatetimeIntervalFromNow()
-        dateString = interval.strftime("%Y %b %d %H:%M")
+        try:
+            interval = getDatetimeIntervalFromNow()
+            dateString = interval.strftime("%Y %b %d %H:%M")
 
-        print(f"\nConsultando GDELT para: {dateString}")
+            print(f"\nConsultando GDELT para: {dateString}")
 
-        getGdeltData(gd2, dateString)
+            getGdeltData(gd2, dateString)
 
-        print("Esperando 15 minutos...")
-        time.sleep(15 * 60)
+            print("Esperando 15 minutos...")
+            time.sleep(15 * 60)
+
+        except Exception:
+            print("Error: Ocurrió un problema con el loader")
 
 if __name__ == "__main__":
     freeze_support()
