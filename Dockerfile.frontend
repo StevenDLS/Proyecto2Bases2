@@ -1,4 +1,8 @@
 FROM python:latest
 USER root
 WORKDIR /app
-RUN pip install flask
+RUN pip install flask pymongo
+COPY app.py .
+COPY templates ./templates
+EXPOSE 5000
+CMD ["python", "-u", "app.py"]
