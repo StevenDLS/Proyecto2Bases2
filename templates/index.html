@@ -5,12 +5,16 @@
 {% block contenido %}
 <section class="tira-stats">
     <div class="celda">
-        <div class="numero">{{ analisis | length }}</div>
-        <div class="etiqueta">analisis disponibles</div>
+        <div class="numero" id="num-analisis">{{ analisis | length }}</div>
+        <div class="etiqueta">análisis disponibles</div>
     </div>
     <div class="celda">
-        <div class="numero">{{ "{:,}".format(total_filas) }}</div>
-        <div class="etiqueta">resultados en mongodb</div>
+        <div class="numero" id="num-filas">{{ "{:,}".format(total_filas) }}</div>
+        <div class="etiqueta">resultados únicos</div>
+    </div>
+    <div class="celda">
+        <div class="numero" id="num-bruto">{{ "{:,}".format(total_bruto) }}</div>
+        <div class="etiqueta">resultados brutos (con duplicados)</div>
     </div>
     <div class="celda">
         <div class="numero">3</div>
@@ -18,20 +22,22 @@
     </div>
 </section>
 
-{% if analisis %}
-<section class="rejilla">
+<section class="rejilla" id="rejilla">
+    {% if analisis %}
     {% for item in analisis %}
     <article class="tarjeta">
         <div class="indice">{{ "%02d"|format(loop.index) }}</div>
         <div class="titulo">{{ item.titulo }}</div>
         <div class="pie">
-            <span>{{ "{:,}".format(item.filas) }} filas{% if item.tiene_grafico %} / grafico{% endif %}</span>
+            <span>{{ "{:,}".format(item.filas) }} filas{% if item.tiene_grafico %} / gráfico{% endif %}</span>
             <a class="abrir" href="/analisis/{{ item.nombre }}">ver -&gt;</a>
         </div>
     </article>
     {% endfor %}
+    {% else %}
+    <p class="vacio">todavía no hay datos en la base, corra el pipeline primero :/</p>
+    {% endif %}
 </section>
-{% else %}
-<p class="vacio">todavia no hay datos en la base, corra el pipeline primero :/</p>
-{% endif %}
+
+<script src="{{ url_for('static', filename='home.js') }}"></script>
 {% endblock %}

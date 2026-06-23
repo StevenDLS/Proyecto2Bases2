@@ -17,86 +17,83 @@ COLECCIONES_SISTEMA = {"startup_log"}
 
 app = Flask(__name__)
 
-client = MongoClient(MONGO_URI)
-database = client[DATABASE_NAME]
-
 # metadatos de cada analisis: titulo legible, configuracion del grafico de barras
 # (que columnas son etiqueta, que columna es el valor, cuantas filas en el top) y
 # como colorear (magnitud = escala secuencial, signo = rojo si negativo verde si
 # positivo). las colecciones no listadas igual se muestran, solo que sin grafico
 ANALISIS = {
     "mapa_calor_intensidad_conflictos": {
-        "titulo": "Mapa de calor de intensidad de conflictos por pais por dia",
+        "titulo": "Mapa de calor de intensidad de conflictos por país por día",
         "barra": {"label": ["pais"], "valor": "intensidad_total_goldstein", "top": 20},
         "color": "magnitud",
     },
     "top_10_paises_eventos_por_dia": {
-        "titulo": "Top 10 paises que generan mas eventos noticiosos por dia",
+        "titulo": "Top 10 países que generan más eventos noticiosos por día",
         "barra": {"label": ["pais"], "valor": "total_eventos", "top": 20},
         "color": "magnitud",
     },
     "correlacion_avg_tone_fuentes": {
-        "titulo": "Correlacion entre AvgTone y numero de fuentes noticiosas",
+        "titulo": "Correlación entre AvgTone y número de fuentes noticiosas",
         "barra": None,
         "color": "signo",
     },
     "distribucion_cameo_por_region": {
-        "titulo": "Distribucion de tipos de eventos CAMEO por region del mundo",
+        "titulo": "Distribución de tipos de eventos CAMEO por región del mundo",
         "barra": {"label": ["region", "descripcion_cameo"], "valor": "total_eventos", "top": 20},
         "color": "magnitud",
     },
     "matriz_interaccion_actores": {
-        "titulo": "Matriz de interaccion entre tipos de actores",
+        "titulo": "Matriz de interacción entre tipos de actores",
         "barra": {"label": ["actor1_categoria", "actor2_categoria"], "valor": "frecuencia", "top": 20},
         "color": "magnitud",
     },
     "paises_mayor_cobertura_mediatica": {
-        "titulo": "Paises con mayor cobertura mediatica por evento",
+        "titulo": "Países con mayor cobertura mediática por evento",
         "barra": {"label": ["pais"], "valor": "razon_menciones_por_evento", "top": 20},
         "color": "magnitud",
     },
     "tendencia_sentimiento_pais": {
-        "titulo": "Tendencia de sentimiento por pais (promedio movil del AvgTone)",
+        "titulo": "Tendencia de sentimiento por país (promedio móvil del AvgTone)",
         "barra": None,
         "color": "signo",
     },
     "conflictos_pares_paises": {
-        "titulo": "Pares de paises que entran en conflicto con mayor frecuencia",
+        "titulo": "Pares de países que entran en conflicto con mayor frecuencia",
         "barra": {"label": ["pais_a", "pais_b"], "valor": "total_conflictos", "top": 20},
         "color": "magnitud",
     },
     "escalada_eventos_menciones_24h": {
-        "titulo": "Deteccion de escalada de eventos en 24 horas",
+        "titulo": "Detección de escalada de eventos en 24 horas",
         "barra": {"label": ["pais", "EventCode"], "valor": "aceleracion_menciones", "top": 20},
         "color": "magnitud",
     },
     "conflictos_religion_region": {
-        "titulo": "Agrupamiento de conflictos basados en religion por region",
+        "titulo": "Agrupamiento de conflictos basados en religión por región",
         "barra": {"label": ["region", "religion_actor1"], "valor": "total_conflictos", "top": 20},
         "color": "magnitud",
     },
     "temas_gkg_continente_anio": {
-        "titulo": "Principales temas extraidos por el GKG por continente por anio",
+        "titulo": "Principales temas extraídos por el GKG por continente por año",
         "barra": {"label": ["tema"], "valor": "total_documentos", "top": 20},
         "color": "magnitud",
     },
     "organizaciones_mas_mencionadas_por_dia": {
-        "titulo": "Organizaciones mas mencionadas a nivel global por dia",
+        "titulo": "Organizaciones más mencionadas a nivel global por día",
         "barra": {"label": ["organizacion"], "valor": "total_documentos", "top": 20},
         "color": "magnitud",
     },
     "analisis_rezago_tono_conflicto": {
-        "titulo": "Analisis de rezago: el tono de hoy predice conflictos de manana?",
+        "titulo": "Análisis de rezago: ¿el tono de hoy predice conflictos de mañana?",
         "barra": {"label": ["pais"], "valor": "correlacion_tono_hoy_conflicto_manana", "top": 20},
         "color": "signo",
     },
     "grafo_diplomacia_vs_conflicto": {
-        "titulo": "Grafo de interacciones diplomaticas vs conflictos entre paises",
+        "titulo": "Grafo de interacciones diplomáticas vs conflictos entre países",
         "barra": {"label": ["pais_a", "pais_b"], "valor": "total_interacciones", "top": 20},
         "color": "magnitud",
     },
     "indice_diversidad_fuentes_pais": {
-        "titulo": "Indice de diversidad de fuentes por pais (Shannon)",
+        "titulo": "Índice de diversidad de fuentes por país (Shannon)",
         "barra": {"label": ["pais"], "valor": "indice_shannon_fuentes", "top": 20},
         "color": "magnitud",
     },
@@ -106,17 +103,17 @@ ANALISIS = {
         "color": "magnitud",
     },
     "noticias_ultima_hora": {
-        "titulo": "Deteccion de noticias de ultima hora (mas de 100 menciones en menos de 1 hora)",
+        "titulo": "Detección de noticias de última hora (más de 100 menciones en menos de 1 hora)",
         "barra": {"label": ["pais", "EventCode"], "valor": "menciones_primera_hora", "top": 20},
         "color": "magnitud",
     },
     "actores_mas_asociados_eventos_negativos": {
-        "titulo": "Extra: actores mas asociados a eventos negativos",
+        "titulo": "Extra: actores más asociados a eventos negativos",
         "barra": {"label": ["nombre_actor"], "valor": "apariciones", "top": 20},
         "color": "magnitud",
     },
     "eventos_positivos_mas_cubiertos_por_pais": {
-        "titulo": "Extra: eventos positivos mas cubiertos por pais",
+        "titulo": "Extra: eventos positivos más cubiertos por país",
         "barra": {"label": ["pais"], "valor": "total_menciones_reales", "top": 20},
         "color": "magnitud",
     },
@@ -140,11 +137,15 @@ def es_analisis(nombre):
 
 
 def colecciones_de_analisis():
+    client = MongoClient(MONGO_URI)
+    database = client[DATABASE_NAME]
     nombres = [n for n in database.list_collection_names() if es_analisis(n)]
     # primero las conocidas en el orden del enunciado, luego cualquier extra
     conocidas = [n for n in ANALISIS.keys() if n in nombres]
     extra = sorted(n for n in nombres if n not in ANALISIS)
+    client.close()
     return conocidas + extra
+
 
 
 def a_numero(valor):
@@ -184,20 +185,26 @@ def deduplicar(documentos):
 
 def datos_de(nombre):
     # lectura de una coleccion, sin el _id, con tope de filas y sin duplicados
+    client = MongoClient(MONGO_URI)
+    database = client[DATABASE_NAME]
     coleccion = database[nombre]
     total_bruto = coleccion.count_documents({})
     documentos = list(coleccion.find({}, {"_id": 0}).limit(LIMITE_FILAS))
     unicos = deduplicar(documentos)
+    client.close()
     return unicos, total_bruto
 
 
-@app.route("/")
-def index():
+def construir_resumen():
+    # arma la lista de analisis con su conteo de filas unicas y el bruto. lo usan
+    # tanto la pagina de inicio como el endpoint que la refresca en vivo
     analisis = []
+    total_bruto = 0
     for nombre in colecciones_de_analisis():
         # contamos filas unicas para que el numero calce con lo que se ve en cada
-        # pagina (la base trae repeticiones del pipeline)
-        unicos, _ = datos_de(nombre)
+        # pagina (la base trae repeticiones del pipeline), y aparte el bruto
+        unicos, bruto = datos_de(nombre)
+        total_bruto += bruto
         analisis.append(
             {
                 "nombre": nombre,
@@ -207,7 +214,32 @@ def index():
             }
         )
     total_filas = sum(item["filas"] for item in analisis)
-    return render_template("index.html", analisis=analisis, total_filas=total_filas)
+    return analisis, total_filas, total_bruto
+
+
+@app.route("/")
+def index():
+    analisis, total_filas, total_bruto = construir_resumen()
+    return render_template(
+        "index.html",
+        analisis=analisis,
+        total_filas=total_filas,
+        total_bruto=total_bruto,
+    )
+
+
+@app.route("/api/resumen")
+def api_resumen():
+    # endpoint que consume la pagina de inicio para refrescar los numeros en vivo
+    analisis, total_filas, total_bruto = construir_resumen()
+    return jsonify(
+        {
+            "analisis": analisis,
+            "total_filas": total_filas,
+            "total_bruto": total_bruto,
+            "total_analisis": len(analisis),
+        }
+    )
 
 
 @app.route("/analisis/<nombre>")

@@ -32,7 +32,10 @@
   }
 
   function aNumero(valor) {
-    var n = parseFloat(valor);
+    // estricto: el valor completo tiene que ser un numero. asi un texto como
+    // una fecha "2026-06-22" no se cuela como numero (parseFloat sacaba 2026)
+    if (valor === null || valor === undefined || valor === "") return null;
+    var n = Number(valor);
     return isNaN(n) ? null : n;
   }
 
@@ -72,7 +75,7 @@
     var filas = filasParaGrafico(datos);
     var host = d3.select("#grafico");
     if (!filas.length) {
-      host.html("<p class='vacio'>este analisis no tiene una metrica para graficar, vea la tabla abajo</p>");
+      host.html("<p class='vacio'>este análisis no tiene una métrica para graficar, vea la tabla abajo</p>");
       return;
     }
     // quitamos el texto de carga la primera vez, el svg se queda para las animaciones
@@ -148,17 +151,36 @@
   function dibujarTabla(datos) {
     var host = d3.select("#tabla");
     if (!datos.documentos.length) {
-      host.html("<p class='vacio'>esta coleccion no tiene datos por ahora :(</p>");
+      host.html("<p class='vacio'>esta colección no tiene datos por ahora :(</p>");
       return;
     }
+    // decidimos por columna si es numerica (todos sus valores no vacios son
+    // numeros). asi alineamos el encabezado y los datos igual y no queda
+    // descuadrado
+    var esNumerica = {};
+    datos.columnas.forEach(function (col) {
+      var hayValor = false;
+      var todosNumeros = true;
+      datos.documentos.forEach(function (doc) {
+        var v = doc[col];
+        if (v === null || v === undefined || v === "") return;
+        hayValor = true;
+        if (aNumero(v) === null) todosNumeros = false;
+      });
+      esNumerica[col] = hayValor && todosNumeros;
+    });
+
     var html = "<div class='tabla-scroll'><table><thead><tr>";
-    datos.columnas.forEach(function (col) { html += "<th>" + escapar(col) + "</th>"; });
+    datos.columnas.forEach(function (col) {
+      var clase = esNumerica[col] ? " class='numerico'" : "";
+      html += "<th" + clase + ">" + escapar(col) + "</th>";
+    });
     html += "</tr></thead><tbody>";
     datos.documentos.forEach(function (doc) {
       html += "<tr>";
       datos.columnas.forEach(function (col) {
         var valor = doc[col] !== undefined && doc[col] !== null ? doc[col] : "";
-        var clase = aNumero(valor) !== null ? " class='numerico'" : "";
+        var clase = esNumerica[col] ? " class='numerico'" : "";
         html += "<td" + clase + ">" + escapar(String(valor)) + "</td>";
       });
       html += "</tr>";
@@ -170,7 +192,7 @@
   function actualizarMeta(datos) {
     var meta = document.getElementById("meta");
     if (meta) {
-      meta.textContent = "filas unicas: " + datos.mostradas +
+      meta.textContent = "filas únicas: " + datos.mostradas +
         " (de " + datos.total + " registros con repeticiones del pipeline)" +
         " | actualizado " + new Date().toLocaleTimeString();
     }
@@ -191,10 +213,25 @@
     });
   }
 
+  // guardamos la ultima respuesta con datos para no parpadear a vacio cuando el
+  // pipeline esta limpiando y recargando la coleccion en ese instante
+  var ultimoConDatos = null;
+
   function cargar() {
     fetch("/api/analisis/" + encodeURIComponent(nombre))
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error("http " + r.status);
+        return r.json();
+      })
       .then(function (datos) {
+        var vacio = !datos.documentos || datos.documentos.length === 0;
+        // si llega vacio pero antes habia datos, es una ventana de recarga del
+        // pipeline, mantenemos lo ultimo bueno en pantalla
+        if (vacio && ultimoConDatos) {
+          actualizarMeta(ultimoConDatos);
+          return;
+        }
+        if (!vacio) ultimoConDatos = datos;
         actualizarMeta(datos);
         dibujarGrafico(datos);
         dibujarTabla(datos);
@@ -208,10 +245,8 @@
   cargar();
   setInterval(cargar, INTERVALO_MS);
   window.addEventListener("resize", function () {
-    // redibujamos solo el grafico para que se ajuste al ancho nuevo
-    fetch("/api/analisis/" + encodeURIComponent(nombre))
-      .then(function (r) { return r.json(); })
-      .then(dibujarGrafico)
-      .catch(function () {});
+    // al cambiar el ancho redibujamos el grafico con lo ultimo bueno, sin pedir
+    // de nuevo a la red
+    if (ultimoConDatos) dibujarGrafico(ultimoConDatos);
   });
 })();
