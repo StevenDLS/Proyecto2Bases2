@@ -9,7 +9,7 @@ PROCESSED_JSONS_DIR_PATH: Path = Path("processed_jsons")
 EXPIRATION_TIME: int = 10800
 MONGO_URI: str = "mongodb://mongodb:27017/"
 DATABASE: str = "local"
-COLLECTION_NAMES = list[str] = [
+COLLECTION_NAMES:list[str] = [
     "mapa_calor_intensidad_conflictos"
     "top_10_paises_eventos_por_dia"
     "correlacion_avg_tone_fuentes"
