@@ -6,10 +6,9 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
 
 PROCESSED_JSONS_DIR_PATH: Path = Path("processed_jsons")
-EXPIRATION_TIME: int = 10800
 MONGO_URI: str = "mongodb://mongodb:27017/"
 DATABASE: str = "local"
-COLLECTION_NAMES:list[str] = [
+COLLECTION_NAMES: list[str] = [
     "mapa_calor_intensidad_conflictos",
     "top_10_paises_eventos_por_dia",
     "correlacion_avg_tone_fuentes",
@@ -49,22 +48,22 @@ def createTimeExpirationIndexes() -> None:
     print("Creando índices de tiempo de expiración para las colecciones")
     for collectionName in COLLECTION_NAMES:
         collection = database[collectionName]
-        collection.create_index("createdAt", expireAfterSeconds = EXPIRATION_TIME) # Borrar por cada 3 horas
+        collection.create_index("createdAt", expireAfterSeconds = 21600) # Borrar por cada 6 horas
     client.close()
 
 def uploadData() -> None:
     client: MongoClient = MongoClient(MONGO_URI)
     database = client[DATABASE]
-    for collectionName in COLLECTION_NAMES:
-        jsonFilePathString = str(PROCESSED_JSONS_DIR_PATH.joinpath(collectionName + ".json"))
-        with open(jsonFilePathString ,'r', encoding = "utf-8") as jsonFile:
-            unformattedData: str = jsonFile.read()
-            dictionaryList = json.loads(unformattedData)
-            if dictionaryList != []:
-                for dictionary in dictionaryList:
-                    dictionary["createdAt"] = datetime.now(timezone.utc)
-                collection = database[collectionName]
-                collection.insert_many(dictionary)
+    for jsonFilePath in PROCESSED_JSONS_DIR_PATH.iterdir():
+        if jsonFilePath.exists() and jsonFilePath.is_file():
+            with open(str(jsonFilePath.absolute()) ,'r', encoding = "utf-8") as jsonFile:
+                unformattedData: str = jsonFile.read()
+                dictionaryList = json.loads(unformattedData)
+                if dictionaryList != []:
+                    for dictionary in dictionaryList:
+                        dictionary["createdAt"] = datetime.now(timezone.utc)
+                    collection = database[jsonFilePath.name[:-5]]
+                    collection.insert_many(dictionaryList)
     client.close()
 
 def main() -> None:
@@ -78,8 +77,8 @@ def main() -> None:
             uploadData()
             print("Esperando 15 minutos para la siguiente consulta a GDELT")
             time.sleep(15 * 60)
-        except Exception:
-            print("Error: Ocurrió un problema con la base de datos")
+        except Exception as e:
+            print(f"Error: Ocurrió un problema con la base de datos\nEste es el error que devolvió el programa:\n{e}")
 
 if __name__ == "__main__":
     main()

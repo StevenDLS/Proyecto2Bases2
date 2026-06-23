@@ -182,8 +182,8 @@ def main():
             createQueries(sparkSession)
             print("Esperando 15 minutos para la siguiente consulta a GDELT")
             time.sleep(15 * 60)
-        except Exception:
-            print("Error: Ocurrió un problema con el analyzer")
+        except Exception as e:
+            print(f"Error: Ocurrió un problema con el analyzer\nEste es el error que devolvió el programa:\n{e}")
 
 if __name__ == "__main__":
     freeze_support()

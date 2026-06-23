@@ -29,10 +29,7 @@ def getGdeltData(gd2, dateString: str) -> None:
             table = table,
             output = "json"
         )
-
-        now: datetime = datetime.now(timezone.utc) - timedelta(hours = 6)
         jsonFilePath: Path = JSONS_DIR_PATH.joinpath(table + ".json")
-
         with open(str(jsonFilePath), 'w') as jsonFile:
             parsedData = json.loads(results)
             formattedJSON = json.dumps(parsedData, indent = 4)
@@ -55,8 +52,8 @@ def main():
             print("Esperando 15 minutos...")
             time.sleep(15 * 60)
 
-        except Exception:
-            print("Error: Ocurrió un problema con el loader")
+        except Exception as e:
+            print(f"Error: Ocurrió un problema con el loader\n.6666666Este es el error que devolvió el programa:\n{e}")
 
 if __name__ == "__main__":
     freeze_support()
