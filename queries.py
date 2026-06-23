@@ -850,7 +850,7 @@ def noticias_ultima_hora(spark, min_menciones=1):
                 MentionSourceName,
                 to_timestamp(
                     substring(
-                        regexp_replace(CAST(MentionTimeDate AS STRING), '\\\\.0$', ''),
+                        lpad(CAST(CAST(MentionTimeDate AS DECIMAL(20,0)) AS STRING), 14, '0'),
                         1,
                         14
                     ),
@@ -876,7 +876,7 @@ def noticias_ultima_hora(spark, min_menciones=1):
             SELECT
                 mt.GLOBALEVENTID,
                 COUNT(*) AS menciones_primera_hora,
-                COUNT(DISTINCT mt.MentionSourceName) AS fuentes_primera_hora
+                COUNT(DISTINCT COALESCE(mt.MentionSourceName, 'SIN_FUENTE')) AS fuentes_primera_hora
             FROM mention_times_valid mt
             JOIN firsts f
                 ON mt.GLOBALEVENTID = f.GLOBALEVENTID
@@ -915,6 +915,7 @@ def noticias_ultima_hora(spark, min_menciones=1):
             ON ph.GLOBALEVENTID = e.GLOBALEVENTID
         WHERE ph.menciones_primera_hora >= {min_menciones}
         ORDER BY ph.menciones_primera_hora DESC
+        LIMIT 50
     """
     return ejecutar(spark, sql, "noticias_ultima_hora.json")
 
