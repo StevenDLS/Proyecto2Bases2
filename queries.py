@@ -846,7 +846,7 @@ def frecuencia_conflictos_por_etnia(spark):
 # EVENTOS CON MÁS DE 100 MENCIONES EN MENOS DE 1 HORA
 # ============================================================
 
-def noticias_ultima_hora(spark, min_menciones=100):
+def noticias_ultima_hora(spark, min_menciones=1):
     sql = f"""
         WITH mention_times AS (
             SELECT
