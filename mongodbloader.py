@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
 
 PROCESSED_JSONS_DIR_PATH: Path = Path("processed_jsons")
+EXPIRATION_TIME: int = 10800
 MONGO_URI: str = "mongodb://mongodb:27017/"
 DATABASE: str = "local"
 COLLECTION_NAMES = list[str] = [
@@ -48,7 +49,7 @@ def createTimeExpirationIndexes() -> None:
     print("Creando índices de tiempo de expiración para las colecciones")
     for collectionName in COLLECTION_NAMES:
         collection = database[collectionName]
-        collection.create_index("createdAt", expireAfterSeconds = 10800) # Borrar por cada 3 horas
+        collection.create_index("createdAt", expireAfterSeconds = EXPIRATION_TIME) # Borrar por cada 3 horas
     client.close()
 
 def uploadData() -> None:
@@ -64,14 +65,6 @@ def uploadData() -> None:
                     dictionary["createdAt"] = datetime.now(timezone.utc)
                 collection = database[collectionName]
                 collection.insert_many(dictionary)
-    client.close()
-
-def clearData() -> None:
-    client: MongoClient = MongoClient(MONGO_URI)
-    database = client[DATABASE]
-    for jsonFilePath in PROCESSED_JSONS_DIR_PATH.iterdir():
-        collection = database[jsonFilePath.name[:-5]]
-        collection.delete_many({})
     client.close()
 
 def main() -> None:
