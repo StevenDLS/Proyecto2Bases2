@@ -1,38 +1,27 @@
 {% extends "base.html" %}
 
-{% block titulo %}{{ titulo }}{% endblock %}
+{% block titulo %}{{ titulo }} // GDELT{% endblock %}
 
 {% block contenido %}
-<h2>{{ titulo }}</h2>
+<h1 class="titulo-pagina">{{ titulo }}</h1>
+<div class="meta-pagina" id="meta">cargando datos.</div>
 
-{% if barras %}
-<h3>Grafico</h3>
-{% for fila in barras %}
-<div class="barra-fila">
-    <span class="barra-etiqueta">{{ fila.etiqueta }}</span>
-    <span class="barra" style="width: {{ fila.porcentaje }}%;"></span>
-    {{ fila.valor }}
+<div id="vista-analisis"
+     data-nombre="{{ nombre }}"
+     data-color="{{ color }}"
+     {% if barra %}data-barra='{{ barra | tojson }}'{% endif %}>
+
+    <section class="panel">
+        <h2>grafico</h2>
+        <div id="grafico"><p class="cargando">dibujando.</p></div>
+    </section>
+
+    <section class="panel">
+        <h2>tabla de resultados</h2>
+        <div id="tabla"><p class="cargando">cargando.</p></div>
+    </section>
 </div>
-{% endfor %}
-{% endif %}
 
-<h3>Tabla</h3>
-{% if documentos %}
-<table>
-    <tr>
-        {% for columna in columnas %}
-        <th>{{ columna }}</th>
-        {% endfor %}
-    </tr>
-    {% for documento in documentos %}
-    <tr>
-        {% for columna in columnas %}
-        <td>{{ documento.get(columna, "") }}</td>
-        {% endfor %}
-    </tr>
-    {% endfor %}
-</table>
-{% else %}
-<p>esta coleccion no tiene datos por ahora :(</p>
-{% endif %}
+<script src="{{ url_for('static', filename='d3.v7.min.js') }}"></script>
+<script src="{{ url_for('static', filename='charts.js') }}"></script>
 {% endblock %}

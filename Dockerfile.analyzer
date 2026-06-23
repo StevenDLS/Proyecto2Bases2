@@ -5,7 +5,6 @@ EXPOSE 4040
 EXPOSE 15002
 COPY analyzer.py .
 COPY queries.py .
-COPY database.py .
 ENV PYTHONUNBUFFERED=1
 RUN mkdir parquets
 RUN mkdir parquets/events

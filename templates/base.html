@@ -2,24 +2,23 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>{% block titulo %}Visualizador GDELT{% endblock %}</title>
-    <style>
-        /* estilos minimos, nada fancy por ahora ^.^ */
-        body { font-family: monospace; margin: 20px; }
-        table { border-collapse: collapse; }
-        td, th { border: 1px solid black; padding: 2px 6px; }
-        .barra-fila { margin: 2px 0; }
-        .barra-etiqueta { display: inline-block; width: 280px; }
-        .barra { display: inline-block; height: 12px; background: gray; vertical-align: middle; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}GDELT // analisis de eventos mundiales{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 </head>
 <body>
-    <h1>Analisis de Eventos Mundiales - GDELT</h1>
-    <p>
-        <a href="/">Inicio</a> |
-        <a href="/conclusiones">Conclusiones</a>
-    </p>
-    <hr>
-    {% block contenido %}{% endblock %}
+    <header class="barra-superior">
+        <div class="marca">
+            GDELT<span class="sep">//</span><span class="sub">analisis de eventos mundiales</span>
+        </div>
+        <nav class="nav">
+            <a href="/">inicio</a>
+            <a href="/conclusiones">conclusiones</a>
+            <span class="live"><span class="punto"></span>en vivo</span>
+        </nav>
+    </header>
+    <main class="contenido">
+        {% block contenido %}{% endblock %}
+    </main>
 </body>
 </html>

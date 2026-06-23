@@ -1,16 +1,37 @@
 {% extends "base.html" %}
 
-{% block titulo %}Inicio - Visualizador GDELT{% endblock %}
+{% block titulo %}inicio // GDELT{% endblock %}
 
 {% block contenido %}
-<h2>Analisis disponibles</h2>
+<section class="tira-stats">
+    <div class="celda">
+        <div class="numero">{{ analisis | length }}</div>
+        <div class="etiqueta">analisis disponibles</div>
+    </div>
+    <div class="celda">
+        <div class="numero">{{ "{:,}".format(total_filas) }}</div>
+        <div class="etiqueta">resultados en mongodb</div>
+    </div>
+    <div class="celda">
+        <div class="numero">3</div>
+        <div class="etiqueta">tablas fuente: events, mentions, gkg</div>
+    </div>
+</section>
+
 {% if analisis %}
-<ul>
+<section class="rejilla">
     {% for item in analisis %}
-    <li><a href="/analisis/{{ item.nombre }}">{{ item.titulo }}</a></li>
+    <article class="tarjeta">
+        <div class="indice">{{ "%02d"|format(loop.index) }}</div>
+        <div class="titulo">{{ item.titulo }}</div>
+        <div class="pie">
+            <span>{{ "{:,}".format(item.filas) }} filas{% if item.tiene_grafico %} / grafico{% endif %}</span>
+            <a class="abrir" href="/analisis/{{ item.nombre }}">ver -&gt;</a>
+        </div>
+    </article>
     {% endfor %}
-</ul>
+</section>
 {% else %}
-<p>todavia no hay datos en la base, corra el pipeline primero :/</p>
+<p class="vacio">todavia no hay datos en la base, corra el pipeline primero :/</p>
 {% endif %}
 {% endblock %}

@@ -173,7 +173,7 @@ def main():
     sparkSession.udf.register("region_from_geo", region_from_geo, "string")
 
     while True:
-        print("Esperando 1 minuto para que se consulta a GDELT")
+        print("Esperando 1 minuto antes de crear las tablas")
         time.sleep(60)
         print("Creando tablas")
         createTables(sparkSession)
