@@ -692,7 +692,7 @@ def analisis_rezago_tono_conflicto(spark):
         FROM rezago
         WHERE conflictos_manana IS NOT NULL
         GROUP BY pais
-        HAVING dias_analizados >= 3
+        HAVING dias_analizados >= 1
         ORDER BY ABS(correlacion_tono_hoy_conflicto_manana) DESC
     """
     return ejecutar(spark, sql, "analisis_rezago_tono_conflicto.json")
