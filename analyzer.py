@@ -162,8 +162,8 @@ def createQueries(sparkSession: SparkSession) -> None:
     queries.analisis_rezago_tono_conflicto(sparkSession)
     queries.grafo_diplomacia_vs_conflicto(sparkSession)
     queries.indice_diversidad_fuentes_pais(sparkSession)
-    queries.frecuencia_conflictos_por_etnia(sparkSession) # Retorna una sola fila
-    queries.noticias_ultima_hora(sparkSession) # Retorna lista vacía
+    queries.frecuencia_conflictos_por_etnia(sparkSession) 
+    queries.noticias_ultima_hora(sparkSession) 
     queries.actores_mas_asociados_eventos_negativos(sparkSession)
     queries.eventos_positivos_mas_cubiertos_por_pais(sparkSession)
 

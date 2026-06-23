@@ -50,7 +50,7 @@ def mapa_calor_intensidad_conflictos(spark):
     return ejecutar(spark, sql, "mapa_calor_intensidad_conflictos.json")
 
 
-# ============================================================Detallito
+# ============================================================
 # 2. TOP 10 PAÍSES QUE GENERAN MÁS EVENTOS NOTICIOSOS POR DÍA
 # ============================================================
 
@@ -345,7 +345,7 @@ def conflictos_pares_paises(spark):
     return ejecutar(spark, sql, "conflictos_pares_paises.json")
 
 
-# ============================================================ VOID
+# ============================================================ 
 # 9. DETECCIÓN DE ESCALADA DE EVENTOS EN 24 HORAS
 # ============================================================
 
@@ -837,7 +837,7 @@ def frecuencia_conflictos_por_etnia(spark):
     return ejecutar(spark, sql, "frecuencia_conflictos_por_etnia.json")
 
 
-# ============================================================ VOID
+# ============================================================
 # 17. DETECCIÓN DE NOTICIAS DE ÚLTIMA HORA:
 # EVENTOS CON MÁS DE 100 MENCIONES EN MENOS DE 1 HORA
 # ============================================================
