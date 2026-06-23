@@ -1,6 +1,7 @@
 FROM python:latest
 USER root
 WORKDIR /app
+ENV PYTHONUNBUFFERED=1
 RUN pip install flask pymongo
 COPY app.py .
 COPY templates ./templates

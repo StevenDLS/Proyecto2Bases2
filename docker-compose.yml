@@ -19,7 +19,10 @@ services:
       - SPARK_NO_DAEMONIZE=true
       - SPARK_DRIVER_MEMORY=4g
       - SPARK_EXECUTOR_MEMORY=4g
-    command: /opt/spark/sbin/start-connect-server.sh --master local[*]
+    command: >
+      sh -c "
+        /opt/spark/sbin/start-connect-server.sh --master local[*] &
+        spark-submit --master local[*] analyzer.py"
     volumes:
       - raw_data:/app/raw_jsons
       - processed_data:/app/processed_jsons
@@ -29,8 +32,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.database
-    ports: 
+    ports:
       - 27017:27017
+    command: python3 database.py &
     volumes:
       - processed_data:/app/processed_jsons
 
