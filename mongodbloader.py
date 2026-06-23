@@ -10,24 +10,24 @@ EXPIRATION_TIME: int = 10800
 MONGO_URI: str = "mongodb://mongodb:27017/"
 DATABASE: str = "local"
 COLLECTION_NAMES:list[str] = [
-    "mapa_calor_intensidad_conflictos"
-    "top_10_paises_eventos_por_dia"
-    "correlacion_avg_tone_fuentes"
-    "distribucion_cameo_por_region"
-    "matriz_interaccion_actores"
-    "paises_mayor_cobertura_mediatica"
-    "tendencia_sentimiento_pais"
-    "conflictos_pares_paises"
-    "escalada_eventos_menciones_24h"
-    "conflictos_religion_region"
-    "temas_gkg_continente_anio"
-    "organizaciones_mas_mencionadas_por_dia"
-    "analisis_rezago_tono_conflicto"
-    "grafo_diplomacia_vs_conflicto"
-    "indice_diversidad_fuentes_pais"
-    "frecuencia_conflictos_por_etnia"
-    "noticias_ultima_hora"
-    "actores_mas_asociados_eventos_negativos"
+    "mapa_calor_intensidad_conflictos",
+    "top_10_paises_eventos_por_dia",
+    "correlacion_avg_tone_fuentes",
+    "distribucion_cameo_por_region",
+    "matriz_interaccion_actores",
+    "paises_mayor_cobertura_mediatica",
+    "tendencia_sentimiento_pais",
+    "conflictos_pares_paises",
+    "escalada_eventos_menciones_24h",
+    "conflictos_religion_region",
+    "temas_gkg_continente_anio",
+    "organizaciones_mas_mencionadas_por_dia",
+    "analisis_rezago_tono_conflicto",
+    "grafo_diplomacia_vs_conflicto",
+    "indice_diversidad_fuentes_pais",
+    "frecuencia_conflictos_por_etnia",
+    "noticias_ultima_hora",
+    "actores_mas_asociados_eventos_negativos",
     "eventos_positivos_mas_cubiertos_por_pais"
 ]
 
