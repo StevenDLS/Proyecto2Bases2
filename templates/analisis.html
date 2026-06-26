@@ -11,6 +11,14 @@
      data-color="{{ color }}"
      {% if barra %}data-barra='{{ barra | tojson }}'{% endif %}>
 
+    {% if mapa %}
+    <section class="panel">
+        <h2>mapa de intensidad de conflictos</h2>
+        <p class="nota-mapa">tamaño del círculo = eventos de conflicto · color = intensidad goldstein promedio</p>
+        <div id="mapa"><p class="cargando">cargando mapa.</p></div>
+    </section>
+    {% endif %}
+
     <section class="panel">
         <h2>gráfico</h2>
         <div id="grafico"><p class="cargando">dibujando.</p></div>
@@ -24,4 +32,8 @@
 
 <script src="{{ url_for('static', filename='d3.v7.min.js') }}"></script>
 <script src="{{ url_for('static', filename='charts.js') }}"></script>
+{% if mapa %}
+<script src="{{ url_for('static', filename='topojson-client.min.js') }}"></script>
+<script src="{{ url_for('static', filename='mapa.js') }}"></script>
+{% endif %}
 {% endblock %}

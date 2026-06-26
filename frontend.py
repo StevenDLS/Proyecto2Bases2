@@ -26,6 +26,7 @@ ANALISIS = {
         "titulo": "Mapa de calor de intensidad de conflictos por país por día",
         "barra": {"label": ["pais"], "valor": "intensidad_total_goldstein", "top": 20},
         "color": "magnitud",
+        "mapa": True,
     },
     "top_10_paises_eventos_por_dia": {
         "titulo": "Top 10 países que generan más eventos noticiosos por día",
@@ -184,12 +185,14 @@ def deduplicar(documentos):
 
 
 def datos_de(nombre):
-    # lectura de una coleccion, sin el _id, con tope de filas y sin duplicados
+    # lectura de una coleccion, sin el _id ni el createdAt, con tope de filas y sin
+    # duplicados. ojo: el loader le mete un createdAt distinto a cada copia para el
+    # indice TTL, asi que hay que quitarlo o la dedup no colapsa nada
     client = MongoClient(MONGO_URI)
     database = client[DATABASE_NAME]
     coleccion = database[nombre]
     total_bruto = coleccion.count_documents({})
-    documentos = list(coleccion.find({}, {"_id": 0}).limit(LIMITE_FILAS))
+    documentos = list(coleccion.find({}, {"_id": 0, "createdAt": 0}).limit(LIMITE_FILAS))
     unicos = deduplicar(documentos)
     client.close()
     return unicos, total_bruto
@@ -253,6 +256,7 @@ def analisis(nombre):
         titulo=titulo_de(nombre),
         barra=config.get("barra"),
         color=config.get("color", "magnitud"),
+        mapa=config.get("mapa", False),
     )
 
 

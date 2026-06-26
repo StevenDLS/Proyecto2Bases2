@@ -287,6 +287,31 @@ a:hover {
   z-index: 50;
 }
 
+/* mapa del mundo */
+.nota-mapa {
+  color: var(--texto-2);
+  font-size: 11px;
+  margin: -8px 0 14px 0;
+}
+
+.mapa-svg .pais-geo {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: var(--linea);
+  stroke-width: 0.5;
+}
+
+.mapa-svg .punto-mapa {
+  stroke: rgba(0, 0, 0, 0.5);
+  stroke-width: 0.5;
+  fill-opacity: 0.78;
+  cursor: pointer;
+  transition: fill-opacity 0.15s ease;
+}
+
+.mapa-svg .punto-mapa:hover {
+  fill-opacity: 1;
+}
+
 /* tabla generica */
 .tabla-scroll {
   overflow: auto;
