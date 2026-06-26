@@ -53,7 +53,7 @@ def main():
             time.sleep(15 * 60)
 
         except Exception as e:
-            print(f"Error: Ocurrió un problema con el loader\n.6666666Este es el error que devolvió el programa:\n{e}")
+            print(f"Error: Ocurrió un problema con el loader\n.Este es el error que devolvió el programa:\n{e}")
 
 if __name__ == "__main__":
     freeze_support()
